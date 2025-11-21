@@ -1,0 +1,17 @@
+# базовые
+.vscode/
+.DS_Store
+
+# артефакты сборки
+/bin/
+/*.exe
+/*.exe~
+*.test
+*.out
+
+# тома
+pgdata/
+*.env
+
+# логи
+*.log
