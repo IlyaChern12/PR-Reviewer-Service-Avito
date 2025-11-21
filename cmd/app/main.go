@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/config"
-	"go.uber.org/zap"
+	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/logger"
 )
 
 func main() {
@@ -12,11 +12,9 @@ func main() {
 	cfg := config.LoadConfig()
 
 	// логгер
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-	sugar := logger.Sugar()
-
-	sugar.Infof("Starting PR Reviewer Service on port %s", cfg.Port)
+	logger.Init()
+	defer logger.Sugar.Sync()
+	logger.Sugar.Infof("Starting PR Reviewer Service on port %s", cfg.Port)
 
 	// проверка готовности сервиса
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +24,8 @@ func main() {
 
 	// запускаем сервер
 	addr := ":" + cfg.Port
-	sugar.Infof("Server is listening on %s", addr)
+	logger.Sugar.Infof("Server is listening on %s", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		sugar.Fatalf("Failed to start server: %v", err)
+		logger.Sugar.Fatalf("Failed to start server: %v", err)
 	}
 }
