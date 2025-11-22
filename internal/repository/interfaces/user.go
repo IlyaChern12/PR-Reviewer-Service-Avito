@@ -10,7 +10,7 @@ type UserReader interface {
     GetByID(userID string) (*domain.User, error)
     ListByTeam(teamName string) ([]*domain.User, error)
     ListActiveByTeam(teamName string) ([]*domain.User, error)
-    GetReviewerPRs(userID string) ([]*domain.PullRequest, error)
+    GetReviewPR(userID string) ([]*domain.PullRequestShort, error)
 }
 
 // только запись
@@ -19,7 +19,7 @@ type UserWriter interface {
     SetIsActive(userID string, isActive bool) error
 }
 
-// полный репо
+// полный интерфейс репо
 type UserRepo interface {
     UserReader
     UserWriter

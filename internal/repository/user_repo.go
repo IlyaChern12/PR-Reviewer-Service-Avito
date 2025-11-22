@@ -43,11 +43,18 @@ func (r *UserRepo) GetByID(userID string) (*domain.User, error) {
 
 // обновление активности юзера
 func (r *UserRepo) SetIsActive(userID string, isActive bool) error {
-	if _, err := r.db.Exec(queries.UpdateUserIsActive, isActive, userID); err != nil {
-		r.logger.Errorf("SQL error: failed to update isActive for user %s: %v", userID, err)
-		return err
-	}
-	return nil
+	res, err := r.db.Exec(queries.UpdateUserIsActive, isActive, userID)
+    if err != nil {
+        r.logger.Errorf("SQL error: failed to update isActive for user %s: %v", userID, err)
+        return err
+    }
+
+    rows, _ := res.RowsAffected()
+    if rows == 0 {
+        return fmt.Errorf("user not found")
+    }
+
+    return nil
 }
 
 // вспомогательная функция для чтения пользователей
@@ -83,4 +90,23 @@ func (r *UserRepo) ListActiveByTeam(teamName string) ([]*domain.User, error) {
 		return nil, err
 	}
 	return r.scanUsers(rows)
+}
+
+// получение PR где пользователь является ревьюером
+func (r *UserRepo) GetReviewPR(userID string) ([]*domain.PullRequestShort, error) {
+    rows, err := r.db.Query(queries.SelectReviewPRsByUser, userID)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var prs []*domain.PullRequestShort
+    for rows.Next() {
+        var pr domain.PullRequestShort
+        if err := rows.Scan(&pr.PRID, &pr.PRName, &pr.AuthorID, &pr.Status); err != nil {
+            return nil, err
+        }
+        prs = append(prs, &pr)
+    }
+    return prs, nil
 }

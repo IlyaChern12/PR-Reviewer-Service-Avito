@@ -25,6 +25,12 @@ const (
 	SelectActiveUsersByTeam  = `
 		SELECT user_id, username, team_name, is_active FROM users
 		WHERE team_name=$1 AND is_active=true`
+
+	SelectReviewPRsByUser = `
+		SELECT pr_id, pr_name, author_id, status
+		FROM pull_request_reviewers prr
+		JOIN pull_requests pr ON prr.pr_id = pr.pr_id
+		WHERE prr.user_id = $1;`
 )
 
 // TeamRepo

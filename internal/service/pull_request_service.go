@@ -9,6 +9,14 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	ErrPRNotFound      = errors.New("PR_NOT_FOUND")
+	ErrAuthorNotFound  = errors.New("AUTHOR_NOT_FOUND")
+	ErrPRExists        = errors.New("PR_EXISTS")
+	ErrPRMerged        = errors.New("PR_MERGED")
+	ErrNoCandidate     = errors.New("NO_CANDIDATE")
+)
+
 type PullRequestService struct {
 	prRepo interfaces.PullRequestRepo // репо PR
 	userRepo interfaces.UserReader    // для получения активных ревьюверов
