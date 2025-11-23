@@ -14,11 +14,13 @@ var (
 	ErrTeamNotFound = errors.New("NOT_FOUND")
 )
 
+// TeamRepo - репо пользователей
 type TeamRepo struct {
 	db     *sql.DB
 	logger *zap.SugaredLogger
 }
 
+// NewTeamRepo создает новое репо пользователей
 func NewTeamRepo(db *sql.DB, logger *zap.SugaredLogger) *TeamRepo {
 	return &TeamRepo{
 		db:     db,
@@ -26,7 +28,7 @@ func NewTeamRepo(db *sql.DB, logger *zap.SugaredLogger) *TeamRepo {
 	}
 }
 
-// Проверка существования команды
+// Exists запрашивает проверку на существование
 func (r *TeamRepo) Exists(teamName string) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(queries.SelectTeamExist, teamName).Scan(&exists)
@@ -37,13 +39,17 @@ func (r *TeamRepo) Exists(teamName string) (bool, error) {
 	return exists, nil
 }
 
-// создание команды атомарно
+// CreateTeamWithUsers создает команды атомарно
 func (r *TeamRepo) CreateTeamWithUsers(teamName string, members []*domain.User) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			r.logger.Errorf("rollback failed: %v", err)
+		}
+	}()
 
 	// вставка команды
 	if _, err := tx.Exec(queries.InsertTeam, teamName); err != nil {
@@ -62,14 +68,18 @@ func (r *TeamRepo) CreateTeamWithUsers(teamName string, members []*domain.User) 
 	return tx.Commit()
 }
 
-// получение участников команды
+// GetUsersByTeam получение участников команды
 func (r *TeamRepo) GetUsersByTeam(teamName string) ([]*domain.User, error) {
 	rows, err := r.db.Query(queries.SelectUsersByTeam, teamName)
 	if err != nil {
 		r.logger.Errorf("failed to query users for team %s: %v", teamName, err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 
 	var users []*domain.User
 	for rows.Next() {
@@ -84,13 +94,18 @@ func (r *TeamRepo) GetUsersByTeam(teamName string) ([]*domain.User, error) {
 	return users, nil
 }
 
+// ListAllTeams получает все созданные команды
 func (r *TeamRepo) ListAllTeams() ([]*domain.Team, error) {
-	rows, err := r.db.Query(`SELECT team_name FROM teams`)
+	rows, err := r.db.Query(queries.SelectAllTeams)
 	if err != nil {
 		r.logger.Errorf("failed to list all teams: %v", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 
 	var teams []*domain.Team
 	for rows.Next() {

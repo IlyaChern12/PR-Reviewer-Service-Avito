@@ -19,7 +19,7 @@ func init() {
 
 // тестируем получение PR на ревью
 func TestGetUserReviewPRs(t *testing.T) {
-	ResetDB() 
+	ResetDB()
 	// создаём команду с пользователем заранее
 	teamPayload := map[string]interface{}{
 		"team_name": "team1",
@@ -32,7 +32,15 @@ func TestGetUserReviewPRs(t *testing.T) {
 		},
 	}
 	body, _ := json.Marshal(teamPayload)
-	http.Post(baseURL+"/team/add", "application/json", bytes.NewBuffer(body))
+	resp, err := http.Post(baseURL+"/team/add", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("request error: %v", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close body: %v", err)
+		}
+	}()
 
 	cases := []struct {
 		name   string
@@ -51,7 +59,11 @@ func TestGetUserReviewPRs(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ошибка запроса: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					t.Fatalf("failed to close body: %v", err)
+				}
+			}()
 
 			if resp.StatusCode != c.want {
 				t.Errorf("ожидали %d, получили %d", c.want, resp.StatusCode)
@@ -63,7 +75,7 @@ func TestGetUserReviewPRs(t *testing.T) {
 // тестируем установку активности пользователя
 func TestSetUserIsActive(t *testing.T) {
 	// создаём команду с пользователем заранее
-	ResetDB() 
+	ResetDB()
 	teamPayload := map[string]interface{}{
 		"team_name": "team1",
 		"members": []map[string]interface{}{
@@ -75,7 +87,15 @@ func TestSetUserIsActive(t *testing.T) {
 		},
 	}
 	body, _ := json.Marshal(teamPayload)
-	http.Post(baseURL+"/team/add", "application/json", bytes.NewBuffer(body))
+	resp, err := http.Post(baseURL+"/team/add", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("request error: %v", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close body: %v", err)
+		}
+	}()
 
 	cases := []struct {
 		name    string
@@ -96,7 +116,11 @@ func TestSetUserIsActive(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ошибка запроса: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					t.Fatalf("failed to close body: %v", err)
+				}
+			}()
 
 			if resp.StatusCode != c.want {
 				t.Errorf("ожидали %d, получили %d", c.want, resp.StatusCode)

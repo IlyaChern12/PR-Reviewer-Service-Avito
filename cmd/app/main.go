@@ -18,7 +18,11 @@ func main() {
 
 	// логгер
 	logger.Init()
-	defer logger.Sugar.Sync()
+	defer func() {
+		if err := logger.Sugar.Sync(); err != nil {
+			logger.Sugar.Warnf("logger sync failed: %v", err)
+		}
+	}()
 
 	// подключение к БД
 	dbConn, err := db.NewPostgresDB(cfg)

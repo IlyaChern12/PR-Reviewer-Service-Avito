@@ -45,6 +45,15 @@ const (
 	SelectTeamUsers = `
 		SELECT user_id, username, is_active FROM users
 		WHERE team_name=$1`
+
+	SetIsActiveStatusByTeamName = `
+        UPDATE users
+        SET is_active = $1
+        WHERE team_name = $2
+    `
+	SelectAllTeams = `
+		SELECT team_name
+		FROM teams`
 )
 
 // PullRequestRepo
@@ -92,4 +101,14 @@ const (
 		FROM pull_requests pr
 		JOIN pull_request_reviewers prr ON pr.pull_request_id = prr.pull_request_id
 		WHERE prr.user_id=$1;`
+
+	GetOpenPRsByTeamName = `
+		SELECT pr.pull_request_id, pr.pull_request_name, pr.author_id, pr.status,
+		       u.user_id, u.username, u.team_name, u.is_active
+		FROM pull_requests pr
+		LEFT JOIN pull_request_reviewers prr ON pr.pull_request_id = prr.pull_request_id
+		LEFT JOIN users u ON prr.user_id = u.user_id
+		WHERE pr.status = 'OPEN'
+		  AND pr.author_id IN (SELECT user_id FROM users WHERE team_name = $1)
+	`
 )

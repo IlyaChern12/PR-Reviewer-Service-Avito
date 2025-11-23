@@ -8,7 +8,7 @@ import (
 
 type PullRequestReader interface {
 	GetPRByID(prID string) (*domain.PullRequest, error)
-    ListOpenPRsByTeam(teamName string) ([]*domain.PullRequest, error)
+	ListOpenPRsByTeam(teamName string) ([]*domain.PullRequest, error)
 }
 
 type PullRequestWriter interface {

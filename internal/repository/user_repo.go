@@ -66,17 +66,17 @@ func (r *UserRepo) SetIsActive(userID string, isActive bool) error {
 
 // SetIsActiveByTeam массово обновляет статус для всех пользователей команды
 func (r *UserRepo) SetIsActiveByTeam(teamName string, isActive bool) error {
-    _, err := r.db.Exec(`
-        UPDATE users
-        SET is_active = $1
-        WHERE team_name = $2
-    `, isActive, teamName)
-    return err
+	_, err := r.db.Exec(queries.SetIsActiveStatusByTeamName, isActive, teamName)
+	return err
 }
 
 // scanUsers является вспомогательной функцией для чтения пользователей из sql.Rows.
 func (r *UserRepo) scanUsers(rows *sql.Rows) ([]*domain.User, error) {
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 	var users []*domain.User
 	for rows.Next() {
 		u := &domain.User{}
@@ -115,7 +115,11 @@ func (r *UserRepo) GetReviewPR(userID string) ([]*domain.PullRequestShort, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 
 	var prs []*domain.PullRequestShort
 	for rows.Next() {

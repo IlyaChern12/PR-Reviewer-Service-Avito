@@ -7,6 +7,7 @@ import (
 
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/domain"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/repository/queries"
+	"go.uber.org/zap"
 )
 
 var (
@@ -14,15 +15,18 @@ var (
 	ErrPRNotFound = errors.New("PR_NOT_FOUND")
 )
 
+// PullRequestRepo - репо PR
 type PullRequestRepo struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.SugaredLogger
 }
 
+// NewPullRequestRepo создает новый репо PR
 func NewPullRequestRepo(db *sql.DB) *PullRequestRepo {
 	return &PullRequestRepo{db: db}
 }
 
-// создает запись PR в базе
+// CreatePR создает запись PR в базе
 func (r *PullRequestRepo) CreatePR(pr *domain.PullRequest) error {
 	assignedIDs := []string{}
 	for _, u := range pr.AssignReviewers {
@@ -51,13 +55,17 @@ func (r *PullRequestRepo) CreatePR(pr *domain.PullRequest) error {
 	return err
 }
 
-// назначает ревьюверов
+// AssignReviewers назначает ревьюверов
 func (r *PullRequestRepo) AssignReviewers(prID string, userIDs []string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			r.logger.Errorf("rollback failed: %v", err)
+		}
+	}()
 
 	for _, u := range userIDs {
 		if _, err := tx.Exec(queries.InsertPRReviewer, prID, u); err != nil {
@@ -67,13 +75,13 @@ func (r *PullRequestRepo) AssignReviewers(prID string, userIDs []string) error {
 	return tx.Commit()
 }
 
-// меняет статус на MERGED
+// MergePR меняет статус на MERGED
 func (r *PullRequestRepo) MergePR(prID string, mergedAt time.Time) error {
 	_, err := r.db.Exec(queries.UpdatePRStatusMerged, mergedAt, prID)
 	return err
 }
 
-// возвращает PR по ID
+// GetPRByID возвращает PR по ID
 func (r *PullRequestRepo) GetPRByID(prID string) (*domain.PullRequest, error) {
 	pr := &domain.PullRequest{}
 	var mergedAt sql.NullTime
@@ -96,7 +104,11 @@ func (r *PullRequestRepo) GetPRByID(prID string) (*domain.PullRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		u := &domain.User{}
@@ -109,7 +121,7 @@ func (r *PullRequestRepo) GetPRByID(prID string) (*domain.PullRequest, error) {
 	return pr, nil
 }
 
-// заменяет одного ревьювера на другого
+// UpdateReviewer заменяет одного ревьювера на другого
 func (r *PullRequestRepo) UpdateReviewer(prID, oldUserID, newUserID string) error {
 	_, err := r.db.Exec(queries.UpdatePRReviewer, newUserID, prID, oldUserID)
 	return err
@@ -117,19 +129,15 @@ func (r *PullRequestRepo) UpdateReviewer(prID, oldUserID, newUserID string) erro
 
 // ListOpenPRsByTeam возвращает все PR со статусом OPEN для авторов команды
 func (r *PullRequestRepo) ListOpenPRsByTeam(teamName string) ([]*domain.PullRequest, error) {
-	rows, err := r.db.Query(`
-		SELECT pr.pull_request_id, pr.pull_request_name, pr.author_id, pr.status,
-		       u.user_id, u.username, u.team_name, u.is_active
-		FROM pull_requests pr
-		LEFT JOIN pull_request_reviewers prr ON pr.pull_request_id = prr.pull_request_id
-		LEFT JOIN users u ON prr.user_id = u.user_id
-		WHERE pr.status = 'OPEN'
-		  AND pr.author_id IN (SELECT user_id FROM users WHERE team_name = $1)
-	`, teamName)
+	rows, err := r.db.Query(queries.GetOpenPRsByTeamName, teamName)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 
 	prMap := make(map[string]*domain.PullRequest)
 	for rows.Next() {
@@ -144,10 +152,10 @@ func (r *PullRequestRepo) ListOpenPRsByTeam(teamName string) ([]*domain.PullRequ
 		pr, exists := prMap[prID]
 		if !exists {
 			pr = &domain.PullRequest{
-				PRID:   prID,
-				PRName: prName,
-				AuthorID: authorID,
-				Status: status,
+				PRID:            prID,
+				PRName:          prName,
+				AuthorID:        authorID,
+				Status:          status,
 				AssignReviewers: []*domain.User{},
 			}
 			prMap[prID] = pr
@@ -166,13 +174,17 @@ func (r *PullRequestRepo) ListOpenPRsByTeam(teamName string) ([]*domain.PullRequ
 	return prs, nil
 }
 
-// вывод всех пулл реквестов
+// ListAllPRs вывод всех пулл реквестов
 func (r *PullRequestRepo) ListAllPRs() ([]*domain.PullRequest, error) {
 	rows, err := r.db.Query(queries.SelectAllRPs)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			r.logger.Errorf("rows close failed: %v", err)
+		}
+	}()
 
 	var prs []*domain.PullRequest
 	for rows.Next() {
