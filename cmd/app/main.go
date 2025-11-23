@@ -42,8 +42,8 @@ func main() {
 
 	// Хэндлеры
 	userHandler := handler.NewUserHandler(userService, logger.Sugar)
-	teamHandler := handler.NewTeamHandler(teamService, logger.Sugar)
 	prHandler := handler.NewPullRequestHandler(prService, logger.Sugar)
+	teamHandler := handler.NewTeamHandler(teamService, prService, userService, logger.Sugar)
 	statsHandler := handler.NewStatsHandler(prService, userService, teamService, logger.Sugar)
 
 	// Gin роутер
@@ -73,6 +73,8 @@ func setupRoutes(router *gin.Engine, userH *handler.UserHandler, teamH *handler.
 	// команды
 	router.POST("/team/add", teamH.CreateTeam)
 	router.GET("/team/get", teamH.GetTeam)
+	// массовая деактивация
+	router.POST("/team/deactivate", teamH.DeactivateTeam)
 
 	// пулл реквесты
 	router.POST("/pullRequest/create", prH.CreatePR)

@@ -115,6 +115,57 @@ func (r *PullRequestRepo) UpdateReviewer(prID, oldUserID, newUserID string) erro
 	return err
 }
 
+// ListOpenPRsByTeam возвращает все PR со статусом OPEN для авторов команды
+func (r *PullRequestRepo) ListOpenPRsByTeam(teamName string) ([]*domain.PullRequest, error) {
+	rows, err := r.db.Query(`
+		SELECT pr.pull_request_id, pr.pull_request_name, pr.author_id, pr.status,
+		       u.user_id, u.username, u.team_name, u.is_active
+		FROM pull_requests pr
+		LEFT JOIN pull_request_reviewers prr ON pr.pull_request_id = prr.pull_request_id
+		LEFT JOIN users u ON prr.user_id = u.user_id
+		WHERE pr.status = 'OPEN'
+		  AND pr.author_id IN (SELECT user_id FROM users WHERE team_name = $1)
+	`, teamName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	prMap := make(map[string]*domain.PullRequest)
+	for rows.Next() {
+		var prID, prName, authorID, status string
+		var reviewer domain.User
+		var reviewerID sql.NullString
+
+		if err := rows.Scan(&prID, &prName, &authorID, &status, &reviewerID, &reviewer.Username, &reviewer.TeamName, &reviewer.IsActive); err != nil {
+			return nil, err
+		}
+
+		pr, exists := prMap[prID]
+		if !exists {
+			pr = &domain.PullRequest{
+				PRID:   prID,
+				PRName: prName,
+				AuthorID: authorID,
+				Status: status,
+				AssignReviewers: []*domain.User{},
+			}
+			prMap[prID] = pr
+		}
+
+		if reviewerID.Valid {
+			reviewer.UserID = reviewerID.String
+			pr.AssignReviewers = append(pr.AssignReviewers, &reviewer)
+		}
+	}
+
+	prs := make([]*domain.PullRequest, 0, len(prMap))
+	for _, pr := range prMap {
+		prs = append(prs, pr)
+	}
+	return prs, nil
+}
+
 // вывод всех пулл реквестов
 func (r *PullRequestRepo) ListAllPRs() ([]*domain.PullRequest, error) {
 	rows, err := r.db.Query(queries.SelectAllRPs)

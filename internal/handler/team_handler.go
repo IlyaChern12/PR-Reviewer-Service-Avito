@@ -16,12 +16,16 @@ var (
 
 type TeamHandler struct {
 	teamService *service.TeamService
+	prService   *service.PullRequestService
+	userService *service.UserService
 	logger      *zap.SugaredLogger
 }
 
-func NewTeamHandler(teamService *service.TeamService, logger *zap.SugaredLogger) *TeamHandler {
+func NewTeamHandler(teamService *service.TeamService, prService   *service.PullRequestService, userService *service.UserService, logger *zap.SugaredLogger) *TeamHandler {
 	return &TeamHandler{
 		teamService: teamService,
+		userService: userService,
+		prService:	 prService,
 		logger:      logger,
 	}
 }
@@ -155,4 +159,27 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 
 	// 200 успех
 	ctx.JSON(http.StatusOK, team)
+}
+
+// деактивация команды
+func (h *TeamHandler) DeactivateTeam(c *gin.Context) {
+	teamName := c.Query("team_name")
+	if teamName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team_name is empty"})
+		return
+	}
+
+	// деактивируем всех пользователей
+	if err := h.userService.DeactivateTeam(teamName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// переназначаем ревьюверов в открытых PR
+	if err := h.prService.ReassignReviewersForTeam(teamName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "team deactivated and PR reviewers reassigned"})
 }

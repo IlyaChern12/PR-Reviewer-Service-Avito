@@ -64,6 +64,16 @@ func (r *UserRepo) SetIsActive(userID string, isActive bool) error {
 	return nil
 }
 
+// SetIsActiveByTeam массово обновляет статус для всех пользователей команды
+func (r *UserRepo) SetIsActiveByTeam(teamName string, isActive bool) error {
+    _, err := r.db.Exec(`
+        UPDATE users
+        SET is_active = $1
+        WHERE team_name = $2
+    `, isActive, teamName)
+    return err
+}
+
 // scanUsers является вспомогательной функцией для чтения пользователей из sql.Rows.
 func (r *UserRepo) scanUsers(rows *sql.Rows) ([]*domain.User, error) {
 	defer rows.Close()
