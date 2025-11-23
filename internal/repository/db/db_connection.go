@@ -11,8 +11,8 @@ import (
 func NewPostgresDB(cfg *config.Config) (*sql.DB, error) {
 	// строка подключения к бд
 	dsn := fmt.Sprintf(
-        "host=%s user=%s password=%s dbname=%s sslmode=disable",
-        cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName,
-    )
+		"host=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName,
+	)
 	return sql.Open("postgres", dsn)
 }

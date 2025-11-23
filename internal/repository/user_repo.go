@@ -11,19 +11,21 @@ import (
 	"go.uber.org/zap"
 )
 
+// UserRepo репозиторий для работы с пользователями
 type UserRepo struct {
-	db *sql.DB
+	db     *sql.DB
 	logger *zap.SugaredLogger
 }
 
+// NewUserRepo создает новый UserRepo
 func NewUserRepo(db *sql.DB, logger *zap.SugaredLogger) *UserRepo {
 	return &UserRepo{
-		db: db,
+		db:     db,
 		logger: logger,
 	}
 }
 
-// создаем нового пользователя
+// Create создает нового пользователя или обновляет существующего
 func (r *UserRepo) Create(exec db.Executor, user *domain.User) error {
 	if _, err := exec.Exec(queries.InsertOrUpdateUser, user.UserID, user.Username, user.TeamName, user.IsActive); err != nil {
 		r.logger.Errorf("SQL error: failed to create/update user %s: %v", user.UserID, err)
@@ -32,7 +34,7 @@ func (r *UserRepo) Create(exec db.Executor, user *domain.User) error {
 	return nil
 }
 
-// получение юзера по id
+// GetByID получает пользователя по ID.
 func (r *UserRepo) GetByID(userID string) (*domain.User, error) {
 	var u domain.User
 	err := r.db.QueryRow(queries.SelectUserByID, userID).Scan(&u.UserID, &u.Username, &u.TeamName, &u.IsActive)
@@ -46,23 +48,23 @@ func (r *UserRepo) GetByID(userID string) (*domain.User, error) {
 	return &u, nil
 }
 
-// обновление активности юзера
+// SetIsActive обновляет статус активности пользователя.
 func (r *UserRepo) SetIsActive(userID string, isActive bool) error {
 	res, err := r.db.Exec(queries.UpdateUserIsActive, isActive, userID)
-    if err != nil {
-        r.logger.Errorf("SQL error: failed to update isActive for user %s: %v", userID, err)
-        return err
-    }
+	if err != nil {
+		r.logger.Errorf("SQL error: failed to update isActive for user %s: %v", userID, err)
+		return err
+	}
 
-    rows, _ := res.RowsAffected()
-    if rows == 0 {
-        return fmt.Errorf("user not found")
-    }
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("user not found")
+	}
 
-    return nil
+	return nil
 }
 
-// вспомогательная функция для чтения пользователей
+// scanUsers является вспомогательной функцией для чтения пользователей из sql.Rows.
 func (r *UserRepo) scanUsers(rows *sql.Rows) ([]*domain.User, error) {
 	defer rows.Close()
 	var users []*domain.User
@@ -77,7 +79,7 @@ func (r *UserRepo) scanUsers(rows *sql.Rows) ([]*domain.User, error) {
 	return users, nil
 }
 
-// возврат всех пользователей команды
+// ListByTeam возвращает всех пользователей команды
 func (r *UserRepo) ListByTeam(teamName string) ([]*domain.User, error) {
 	rows, err := r.db.Query(queries.SelectUsersByTeam, teamName)
 	if err != nil {
@@ -87,7 +89,7 @@ func (r *UserRepo) ListByTeam(teamName string) ([]*domain.User, error) {
 	return r.scanUsers(rows)
 }
 
-// возврат всех активных пользователей команды
+// ListActiveByTeam возвращает всех активных пользователей команды
 func (r *UserRepo) ListActiveByTeam(teamName string) ([]*domain.User, error) {
 	rows, err := r.db.Query(queries.SelectActiveUsersByTeam, teamName)
 	if err != nil {
@@ -97,25 +99,26 @@ func (r *UserRepo) ListActiveByTeam(teamName string) ([]*domain.User, error) {
 	return r.scanUsers(rows)
 }
 
-// получение PR где пользователь является ревьюером
+// GetReviewPR получает список PR, где пользователь является ревьюером
 func (r *UserRepo) GetReviewPR(userID string) ([]*domain.PullRequestShort, error) {
-    rows, err := r.db.Query(queries.SelectReviewPRsByUser, userID)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := r.db.Query(queries.SelectReviewPRsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var prs []*domain.PullRequestShort
-    for rows.Next() {
-        var pr domain.PullRequestShort
-        if err := rows.Scan(&pr.PRID, &pr.PRName, &pr.AuthorID, &pr.Status); err != nil {
-            return nil, err
-        }
-        prs = append(prs, &pr)
-    }
-    return prs, nil
+	var prs []*domain.PullRequestShort
+	for rows.Next() {
+		var pr domain.PullRequestShort
+		if err := rows.Scan(&pr.PRID, &pr.PRName, &pr.AuthorID, &pr.Status); err != nil {
+			return nil, err
+		}
+		prs = append(prs, &pr)
+	}
+	return prs, nil
 }
 
+// ListAllUsers возвращает список всех пользователей.
 func (r *UserRepo) ListAllUsers() ([]*domain.User, error) {
 	rows, err := r.db.Query(`SELECT user_id, username, team_name, is_active FROM users`)
 	if err != nil {

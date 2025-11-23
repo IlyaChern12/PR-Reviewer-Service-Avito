@@ -18,7 +18,11 @@ func main() {
 
 	// Логгер
 	logger.Init()
-	defer logger.Sugar.Sync()
+	defer func() {
+		if err := logger.Sugar.Sync(); err != nil {
+			logger.Sugar.Warnf("logger sync failed: %v", err)
+		}
+	}()
 
 	logger.Sugar.Infof("Starting PR Reviewer Service on port %s", cfg.Port)
 

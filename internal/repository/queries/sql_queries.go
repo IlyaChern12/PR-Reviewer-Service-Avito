@@ -18,11 +18,11 @@ const (
 		UPDATE users SET is_active=$1
 		WHERE user_id=$2`
 
-	SelectUsersByTeam        = `
+	SelectUsersByTeam = `
 		SELECT user_id, username, team_name, is_active FROM users
 		WHERE team_name=$1`
 
-	SelectActiveUsersByTeam  = `
+	SelectActiveUsersByTeam = `
 		SELECT user_id, username, team_name, is_active FROM users
 		WHERE team_name=$1 AND is_active=true`
 
@@ -35,7 +35,7 @@ const (
 
 // TeamRepo
 const (
-	InsertTeam      = `
+	InsertTeam = `
 		INSERT INTO teams(team_name) VALUES($1)`
 
 	SelectTeamExist = `
@@ -52,19 +52,19 @@ const (
 	SelectAllRPs = `
 		SELECT pull_request_id FROM pull_requests`
 
-	SelectPRExist           = `
+	SelectPRExist = `
 		SELECT EXISTS(SELECT 1 FROM pull_requests
 		WHERE pull_request_id=$1)`
 
-	InsertPR                = `
+	InsertPR = `
 		INSERT INTO pull_requests(pull_request_id, pull_request_name, author_id, status, created_at)
 		VALUES($1,$2,$3,'OPEN',NOW())`
 
-	UpdatePRStatusMerged    = `
+	UpdatePRStatusMerged = `
 		UPDATE pull_requests SET status='MERGED', merged_at=$1
 		WHERE pull_request_id=$2`
 
-	SelectPRByID            = `
+	SelectPRByID = `
 		SELECT pull_request_id, pull_request_name, author_id, status, created_at, merged_at
 		FROM pull_requests
 		WHERE pull_request_id=$1`
@@ -75,7 +75,7 @@ const (
 		JOIN users u ON prr.user_id = u.user_id
 		WHERE prr.pull_request_id = $1`
 
-	SelectPRReviewers       = `
+	SelectPRReviewers = `
 		SELECT COUNT(1) FROM pull_request_reviewers
 		WHERE pull_request_id=$1 AND user_id=$2`
 
@@ -83,7 +83,7 @@ const (
 		INSERT INTO pull_request_reviewers(pull_request_id, user_id)
 		VALUES($1, $2)`
 
-	UpdatePRReviewer        = `
+	UpdatePRReviewer = `
 		UPDATE pull_request_reviewers SET user_id=$1
 		WHERE pull_request_id=$2 AND user_id=$3`
 

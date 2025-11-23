@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	CodeTeamExists  = "TEAM_EXISTS"
+	CodeTeamExists   = "TEAM_EXISTS"
 	CodeTeamNotFound = "NOT_FOUND"
 )
 
@@ -26,19 +26,21 @@ func NewTeamHandler(teamService *service.TeamService, logger *zap.SugaredLogger)
 	}
 }
 
-/*  создание команды
-	POST /team/add
-	Body:
-		{
-			"team_name": "team1",
-			"members": [
-				{ "user_id": "user1", "username": "Ilya", "is_active": true },
-				{ "user_id": "user2", "username": "AnotherIlya", "is_active": true }
-			]
-		}
-	Response:
-		201 { "team": { team object } }
-		400 TEAM_EXISTS: { "error": { "code": "TEAM_EXISTS", "message": "team already exists" } } */
+/*
+	  создание команды
+		POST /team/add
+		Body:
+			{
+				"team_name": "team1",
+				"members": [
+					{ "user_id": "user1", "username": "Ilya", "is_active": true },
+					{ "user_id": "user2", "username": "AnotherIlya", "is_active": true }
+				]
+			}
+		Response:
+			201 { "team": { team object } }
+			400 TEAM_EXISTS: { "error": { "code": "TEAM_EXISTS", "message": "team already exists" } }
+*/
 func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 	var req domain.Team
 
@@ -46,7 +48,7 @@ func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": gin.H{
-				"code": CodeInvalidInput,
+				"code":    CodeInvalidInput,
 				"message": err.Error(),
 			},
 		})
@@ -60,7 +62,7 @@ func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 		if err == service.ErrTeamExists {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": gin.H{
-					"code": CodeTeamExists,
+					"code":    CodeTeamExists,
 					"message": "team_name already exists",
 				},
 			})
@@ -71,7 +73,7 @@ func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 		h.logger.Warnf("failed to create team %s: %v", req.TeamName, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": gin.H{
-				"code": CodeUnknownError,
+				"code":    CodeUnknownError,
 				"message": err.Error(),
 			},
 		})
@@ -97,21 +99,21 @@ func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 	})
 }
 
-
-
-/* получение команды
-	GET /team/get?team_name=team1
-	Parameters:
-		team_name (string, required)
-	Response:
-	200 {
-		"team_name": "team1",
-		"members": [
-			{ "user_id": "user1", "username": "Ilya", "is_active": true },
-			{ "user_id": "user2", "username": "AnotherIlya", "is_active": true }
-		]
-	}
-	404 NOT_FOUND: { "error": { "code": "NOT_FOUND", "message": "team not found" } } */
+/*
+	 получение команды
+		GET /team/get?team_name=team1
+		Parameters:
+			team_name (string, required)
+		Response:
+		200 {
+			"team_name": "team1",
+			"members": [
+				{ "user_id": "user1", "username": "Ilya", "is_active": true },
+				{ "user_id": "user2", "username": "AnotherIlya", "is_active": true }
+			]
+		}
+		404 NOT_FOUND: { "error": { "code": "NOT_FOUND", "message": "team not found" } }
+*/
 func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 	teamName := ctx.Query("team_name")
 
@@ -119,7 +121,7 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 	if teamName == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": gin.H{
-				"code": CodeInvalidInput,
+				"code":    CodeInvalidInput,
 				"message": "team name is empty",
 			},
 		})
@@ -133,7 +135,7 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 		if err == service.ErrTeamNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
-					"code": CodeTeamNotFound,
+					"code":    CodeTeamNotFound,
 					"message": "team not found",
 				},
 			})
@@ -144,7 +146,7 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 		h.logger.Warnf("failed to get team %s: %v", teamName, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": gin.H{
-				"code": CodeUnknownError,
+				"code":    CodeUnknownError,
 				"message": err.Error(),
 			},
 		})
@@ -154,4 +156,3 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 	// 200 успех
 	ctx.JSON(http.StatusOK, team)
 }
-

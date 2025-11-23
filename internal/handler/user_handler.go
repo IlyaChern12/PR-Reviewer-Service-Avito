@@ -17,33 +17,33 @@ var (
 
 type UserHandler struct {
 	userService *service.UserService
-	logger *zap.SugaredLogger
+	logger      *zap.SugaredLogger
 }
 
 func NewUserHandler(userService *service.UserService, logger *zap.SugaredLogger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
-		logger: logger,
+		logger:      logger,
 	}
 }
 
-
-
-/*  изменение статуса пользователя
-	POST /users/setIsActive
-	Body:
-	{
-		"user_id": "user",
-		"is_active": false
-	}
-	Responses:
-		200: { "user": {user object} }
-		404: { "error": { "code": "NOT_FOUND", "message": "user not found" } }
-		400: { "error": { "code": "INVALID_INPUT", "message": "..." } } */
+/*
+	  изменение статуса пользователя
+		POST /users/setIsActive
+		Body:
+		{
+			"user_id": "user",
+			"is_active": false
+		}
+		Responses:
+			200: { "user": {user object} }
+			404: { "error": { "code": "NOT_FOUND", "message": "user not found" } }
+			400: { "error": { "code": "INVALID_INPUT", "message": "..." } }
+*/
 func (h *UserHandler) SetIsActive(ctx *gin.Context) {
 	var req struct {
-		UserID  string `json:"user_id"`
-		IsActive bool  `json:"is_active"`
+		UserID   string `json:"user_id"`
+		IsActive bool   `json:"is_active"`
 	}
 
 	// парсим тело
@@ -76,15 +76,15 @@ func (h *UserHandler) SetIsActive(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": user})
 }
 
-
-
-/* возвращает PR, где пользователь назначен ревьювером
-	GET /users/getReview?user_id=user1
-	Parameters:
-		user_id - идентификатор пользователя
-	Responses:
-		200: { "user_id": "user", "pull_requests": [PullRequest1...] }
-		404: { "error": { "code": "NOT_FOUND", "message": "user not found" } } */
+/*
+	 возвращает PR, где пользователь назначен ревьювером
+		GET /users/getReview?user_id=user1
+		Parameters:
+			user_id - идентификатор пользователя
+		Responses:
+			200: { "user_id": "user", "pull_requests": [PullRequest1...] }
+			404: { "error": { "code": "NOT_FOUND", "message": "user not found" } }
+*/
 func (h *UserHandler) GetReviewPR(ctx *gin.Context) {
 	userID := ctx.Query("user_id")
 

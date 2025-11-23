@@ -13,13 +13,13 @@ var ErrTeamExists = errors.New("TEAM_EXISTS")
 var ErrTeamNotFound = errors.New("NOT_FOUND")
 
 type TeamService struct {
-    repo   interfaces.TeamRepo
-    db     *sql.DB
-    logger *zap.SugaredLogger
+	repo   interfaces.TeamRepo
+	db     *sql.DB
+	logger *zap.SugaredLogger
 }
 
 func NewTeamService(repo interfaces.TeamRepo, db *sql.DB, logger *zap.SugaredLogger) *TeamService {
-    return &TeamService{repo: repo, db: db, logger: logger}
+	return &TeamService{repo: repo, db: db, logger: logger}
 }
 
 // создание команды
@@ -50,7 +50,6 @@ func (s *TeamService) GetTeam(teamName string) (*domain.Team, error) {
 		Members:  members,
 	}, nil
 }
-
 
 func (s *TeamService) GetStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})

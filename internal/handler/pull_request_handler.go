@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	CodeNotFound      = "NOT_FOUND"
-	CodePRExists      = "PR_EXISTS"
-	CodePRMerged      = "PR_MERGED"
-	CodeNotAssigned   = "NOT_ASSIGNED"
-	CodeNoCandidate   = "NO_CANDIDATE"
+	CodeNotFound    = "NOT_FOUND"
+	CodePRExists    = "PR_EXISTS"
+	CodePRMerged    = "PR_MERGED"
+	CodeNotAssigned = "NOT_ASSIGNED"
+	CodeNoCandidate = "NO_CANDIDATE"
 )
 
 type PullRequestHandler struct {
@@ -30,40 +30,40 @@ func NewPullRequestHandler(prService *service.PullRequestService, logger *zap.Su
 	}
 }
 
-
-
-/*  создание пулл реквеста
-	POST /pullRequest/create
-	Body:
-		{
-			"pull_request_id": "pr-1",
-			"pull_request_name": "Add new",
-			"author_id": "user1"
-		}
-	Success
-		201: { "pr": PullRequest }
-	Errors:
-		404 NOT_FOUND - автор или команда не найдены
-		409 PR_EXISTS - PR с этим id уже есть
-		400 INVALID_INPUT - некорректное тело запроса */
+/*
+	  создание пулл реквеста
+		POST /pullRequest/create
+		Body:
+			{
+				"pull_request_id": "pr-1",
+				"pull_request_name": "Add new",
+				"author_id": "user1"
+			}
+		Success
+			201: { "pr": PullRequest }
+		Errors:
+			404 NOT_FOUND - автор или команда не найдены
+			409 PR_EXISTS - PR с этим id уже есть
+			400 INVALID_INPUT - некорректное тело запроса
+*/
 func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 	var req struct {
-		ID   string `json:"pull_request_id"`
-		Name string `json:"pull_request_name"`
+		ID       string `json:"pull_request_id"`
+		Name     string `json:"pull_request_name"`
 		AuthorID string `json:"author_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{ "code": CodeInvalidInput, "message": err.Error() },
+			"error": gin.H{"code": CodeInvalidInput, "message": err.Error()},
 		})
 		return
 	}
 
 	// сброка пулл реквеста
 	pr := &domain.PullRequest{
-		PRID:   req.ID,
-		PRName: req.Name,
+		PRID:     req.ID,
+		PRName:   req.Name,
 		AuthorID: req.AuthorID,
 		Status:   "OPEN",
 	}
@@ -73,13 +73,13 @@ func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 		switch err {
 		case service.ErrPRExists:
 			c.JSON(http.StatusConflict, gin.H{
-				"error": gin.H{ "code": CodePRExists, "message": "PR already exists" },
+				"error": gin.H{"code": CodePRExists, "message": "PR already exists"},
 			})
 			return
 
 		case service.ErrAuthorNotFound:
 			c.JSON(http.StatusNotFound, gin.H{
-				"error": gin.H{ "code": CodeNotFound, "message": "author not found" },
+				"error": gin.H{"code": CodeNotFound, "message": "author not found"},
 			})
 			return
 		}
@@ -87,7 +87,7 @@ func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 		// unknown
 		h.logger.Warnf("failed to create PR %s: %v", req.ID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{ "code": CodeUnknownError, "message": err.Error() },
+			"error": gin.H{"code": CodeUnknownError, "message": err.Error()},
 		})
 		return
 	}
@@ -97,17 +97,17 @@ func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"pr": serializePR(pr)})
 }
 
-
-
-/*  слияние
-	POST /pullRequest/merge
-	Body:
-		{ "pull_request_id": "pr-1" }
-	Success 200:
-		{ "pr": PullRequest (MERGED) }
-	Errors:
-		404 NOT_FOUND - PR не найден
-		400 INVALID_INPUT - некорректное тело запроса */
+/*
+	  слияние
+		POST /pullRequest/merge
+		Body:
+			{ "pull_request_id": "pr-1" }
+		Success 200:
+			{ "pr": PullRequest (MERGED) }
+		Errors:
+			404 NOT_FOUND - PR не найден
+			400 INVALID_INPUT - некорректное тело запроса
+*/
 func (h *PullRequestHandler) MergePR(c *gin.Context) {
 	var req struct {
 		ID string `json:"pull_request_id"`
@@ -154,29 +154,29 @@ func (h *PullRequestHandler) MergePR(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"pr": serializePR(pr)})
 }
 
-
-
-/* переназначение ревьюера
-	POST /pullRequest/reassign
-	Body:
-		{
-			"pull_request_id": "pr-1",
-			"old_user_id": "user2"
-		}
-	Success 200:
-		{
-		"pr": { PullRequest },
-		"replaced_by": "user5"
-		}
-	Errors:
-		404 NOT_FOUND - PR или пользователь не найдены
-		409 PR_MERGED - нельзя переприсвоить после MERGED
-		409 NOT_ASSIGNED - переданный пользователь не ревьюер
-		409 NO_CANDIDATE - нет активного пользователя для замены в команде */
+/*
+	 переназначение ревьюера
+		POST /pullRequest/reassign
+		Body:
+			{
+				"pull_request_id": "pr-1",
+				"old_user_id": "user2"
+			}
+		Success 200:
+			{
+			"pr": { PullRequest },
+			"replaced_by": "user5"
+			}
+		Errors:
+			404 NOT_FOUND - PR или пользователь не найдены
+			409 PR_MERGED - нельзя переприсвоить после MERGED
+			409 NOT_ASSIGNED - переданный пользователь не ревьюер
+			409 NO_CANDIDATE - нет активного пользователя для замены в команде
+*/
 func (h *PullRequestHandler) ReassignReviewer(c *gin.Context) {
 	var req struct {
-		PRID       string `json:"pull_request_id"`
-		OldUserID  string `json:"old_user_id"`
+		PRID      string `json:"pull_request_id"`
+		OldUserID string `json:"old_user_id"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -207,23 +207,23 @@ func (h *PullRequestHandler) ReassignReviewer(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"pr": serializePR(pr),
+		"pr":          serializePR(pr),
 		"replaced_by": newReviewerID,
 	})
 }
 
 func serializePR(pr *domain.PullRequest) map[string]any {
-    assigned := make([]string, len(pr.AssignReviewers))
-    for i, r := range pr.AssignReviewers {
-        assigned[i] = r.UserID
-    }
-    return map[string]any{
-        "pull_request_id":   pr.PRID,
-        "pull_request_name": pr.PRName,
-        "author_id":         pr.AuthorID,
-        "status":            pr.Status,
-        "assigned_reviewers": assigned,
-        "createdAt":         pr.CreatedAt,
-        "mergedAt":          pr.MergedAt,
-    }
+	assigned := make([]string, len(pr.AssignReviewers))
+	for i, r := range pr.AssignReviewers {
+		assigned[i] = r.UserID
+	}
+	return map[string]any{
+		"pull_request_id":    pr.PRID,
+		"pull_request_name":  pr.PRName,
+		"author_id":          pr.AuthorID,
+		"status":             pr.Status,
+		"assigned_reviewers": assigned,
+		"createdAt":          pr.CreatedAt,
+		"mergedAt":           pr.MergedAt,
+	}
 }

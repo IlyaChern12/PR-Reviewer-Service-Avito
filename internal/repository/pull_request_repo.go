@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrPRExists = errors.New("PR_EXISTS")
+	ErrPRExists   = errors.New("PR_EXISTS")
 	ErrPRNotFound = errors.New("PR_NOT_FOUND")
 )
 

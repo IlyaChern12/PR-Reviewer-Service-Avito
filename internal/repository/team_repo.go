@@ -14,7 +14,6 @@ var (
 	ErrTeamNotFound = errors.New("NOT_FOUND")
 )
 
-
 type TeamRepo struct {
 	db     *sql.DB
 	logger *zap.SugaredLogger

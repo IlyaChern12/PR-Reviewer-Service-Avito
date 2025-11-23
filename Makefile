@@ -32,3 +32,6 @@ migrate-down:
 	docker-compose exec app sh -c '\
 	    until pg_isready -h $$DB_HOST -U $$DB_USER -d $$DB_NAME; do echo waiting for db; sleep 1; done; \
 	    migrate -path /app/migrations -database "postgres://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:5432/$$DB_NAME?sslmode=disable" down'
+
+lint:
+	golangci-lint run ./...

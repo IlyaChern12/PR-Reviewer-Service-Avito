@@ -8,23 +8,24 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	ErrUserNotFound = fmt.Errorf("user not found")
-)
+// ErrUserNotFound возвращается, если пользователь не найден
+var ErrUserNotFound = fmt.Errorf("user not found")
 
+// UserService для работы с пользователями
 type UserService struct {
-    repo   interfaces.UserRepo
-    logger *zap.SugaredLogger
+	repo   interfaces.UserRepo
+	logger *zap.SugaredLogger
 }
 
+// NewUserService создаёт новый сервис пользователей
 func NewUserService(repo interfaces.UserRepo, logger *zap.SugaredLogger) *UserService {
-    return &UserService{
-        repo:   repo,
-        logger: logger,
-    }
+	return &UserService{
+		repo:   repo,
+		logger: logger,
+	}
 }
 
-// получить пользователя по ID
+// GetByID возвращает пользователя по его ID
 func (s *UserService) GetByID(userID string) (*domain.User, error) {
 	user, err := s.repo.GetByID(userID)
 	if err != nil {
@@ -35,7 +36,7 @@ func (s *UserService) GetByID(userID string) (*domain.User, error) {
 	return user, nil
 }
 
-// обновить статус активности
+// SetIsActive обновляет статус активности пользователя
 func (s *UserService) SetIsActive(userID string, isActive bool) (*domain.User, error) {
 	if err := s.repo.SetIsActive(userID, isActive); err != nil {
 		s.logger.Warnf("failed to set isActive for user %s: %v", userID, err)
@@ -50,7 +51,7 @@ func (s *UserService) SetIsActive(userID string, isActive bool) (*domain.User, e
 	return user, nil
 }
 
-// получение всех пользователей команды
+// ListByTeam возвращает всех пользователей команды
 func (s *UserService) ListByTeam(teamName string) ([]*domain.User, error) {
 	users, err := s.repo.ListByTeam(teamName)
 	if err != nil {
@@ -60,7 +61,7 @@ func (s *UserService) ListByTeam(teamName string) ([]*domain.User, error) {
 	return users, nil
 }
 
-// получение всех активных пользователей команды
+// ListActiveByTeam возвращает всех активных пользователей команды
 func (s *UserService) ListActiveByTeam(teamName string) ([]*domain.User, error) {
 	users, err := s.repo.ListActiveByTeam(teamName)
 	if err != nil {
@@ -70,27 +71,29 @@ func (s *UserService) ListActiveByTeam(teamName string) ([]*domain.User, error) 
 	return users, nil
 }
 
-// получение pr где юзер является ревьюером
+// ListReviewPR возвращает PR, где пользователь является ревьюером
 func (s *UserService) ListReviewPR(userID string) ([]*domain.PullRequestShort, error) {
-    // сначала проверяем, что пользователь существует
-    _, err := s.repo.GetByID(userID)
-    if err != nil {
-        return nil, ErrUserNotFound
-    }
+	// сначала проверяем, что пользователь существует
+	_, err := s.repo.GetByID(userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
 
-    prs, err := s.repo.GetReviewPR(userID)
-    if err != nil {
-        s.logger.Warnf("failed to get review PR for user %s: %v", userID, err)
-        return nil, err
-    }
+	prs, err := s.repo.GetReviewPR(userID)
+	if err != nil {
+		s.logger.Warnf("failed to get review PR for user %s: %v", userID, err)
+		return nil, err
+	}
 
-    return prs, nil
+	return prs, nil
 }
 
+// GetReviewPR возвращает PR, где пользователь является ревьюером (обёртка)
 func (s *UserService) GetReviewPR(userID string) ([]*domain.PullRequestShort, error) {
 	return s.ListReviewPR(userID)
 }
 
+// GetStats возвращает статистику по пользователям
 func (s *UserService) GetStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})
 

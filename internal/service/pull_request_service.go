@@ -11,25 +11,25 @@ import (
 )
 
 var (
-	ErrPRNotFound      = errors.New("PR_NOT_FOUND")
-	ErrAuthorNotFound  = errors.New("AUTHOR_NOT_FOUND")
-	ErrPRExists        = errors.New("PR_EXISTS")
-	ErrPRMerged        = errors.New("PR_MERGED")
-	ErrNoCandidate     = errors.New("NO_CANDIDATE")
-	ErrNotAssigned = errors.New("reviewer is not assigned to PR")
+	ErrPRNotFound     = errors.New("PR_NOT_FOUND")
+	ErrAuthorNotFound = errors.New("AUTHOR_NOT_FOUND")
+	ErrPRExists       = errors.New("PR_EXISTS")
+	ErrPRMerged       = errors.New("PR_MERGED")
+	ErrNoCandidate    = errors.New("NO_CANDIDATE")
+	ErrNotAssigned    = errors.New("reviewer is not assigned to PR")
 )
 
 type PullRequestService struct {
-	prRepo interfaces.PullRequestRepo // репо PR
-	userRepo interfaces.UserReader    // для получения активных ревьюверов
-	logger  *zap.SugaredLogger
+	prRepo   interfaces.PullRequestRepo // репо PR
+	userRepo interfaces.UserReader      // для получения активных ревьюверов
+	logger   *zap.SugaredLogger
 }
 
 func NewPullRequestService(prRepo interfaces.PullRequestRepo, userRepo interfaces.UserReader, logger *zap.SugaredLogger) *PullRequestService {
 	return &PullRequestService{
-		prRepo: prRepo,
+		prRepo:   prRepo,
 		userRepo: userRepo,
-		logger:  logger,
+		logger:   logger,
 	}
 }
 
@@ -46,30 +46,29 @@ func (s *PullRequestService) CreatePR(pr *domain.PullRequest) error {
 	}
 
 	author, err := s.userRepo.GetByID(pr.AuthorID)
-    if err != nil {
-        return ErrAuthorNotFound
-    }
+	if err != nil {
+		return ErrAuthorNotFound
+	}
 
 	// получаем активных участников
 	users, err := s.userRepo.ListActiveByTeam(author.TeamName)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	// исключаем автора
 	var reviewers []string
-    for _, u := range users {
-        if u.UserID != pr.AuthorID && len(reviewers) < 2 {
-            reviewers = append(reviewers, u.UserID)
-        }
-    }
+	for _, u := range users {
+		if u.UserID != pr.AuthorID && len(reviewers) < 2 {
+			reviewers = append(reviewers, u.UserID)
+		}
+	}
 
 	// создаем PR
 	pr.Status = "OPEN"
-    if err := s.prRepo.CreatePR(pr); err != nil {
-        return err
-    }
-
+	if err := s.prRepo.CreatePR(pr); err != nil {
+		return err
+	}
 
 	// назначаем ревьюверов
 	if len(reviewers) > 0 {
@@ -123,7 +122,7 @@ func (s *PullRequestService) ReassignReviewer(prID, oldReviewerID string) (*doma
 	}
 
 	if pr.Status == "MERGED" {
-    	return nil, "", ErrPRMerged
+		return nil, "", ErrPRMerged
 	}
 
 	// получаем активных участников
@@ -155,7 +154,6 @@ func (s *PullRequestService) ReassignReviewer(prID, oldReviewerID string) (*doma
 
 	return pr, newReviewerID, nil
 }
-
 
 // сервисный метод для статистики
 func (s *PullRequestService) GetStats() (map[string]interface{}, error) {
