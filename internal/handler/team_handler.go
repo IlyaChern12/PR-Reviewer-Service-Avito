@@ -140,7 +140,7 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
 					"code":    CodeTeamNotFound,
-					"message": "team not found",
+					"message": "resource not found",
 				},
 			})
 			return
@@ -169,13 +169,29 @@ func (h *TeamHandler) DeactivateTeam(c *gin.Context) {
 		return
 	}
 
+	// проверяем существование команды
+	exists, err := h.teamService.TeamExists(teamName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": gin.H{
+				"code":    CodeTeamNotFound,
+				"message": "team not found",
+			},
+		})
+		return
+	}
+
 	// деактивируем всех пользователей
 	if err := h.userService.DeactivateTeam(teamName); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// переназначаем ревьюверов в открытых PR
+	// переназначаем ревьюверов
 	if err := h.prService.ReassignReviewersForTeam(teamName); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -7,11 +7,3 @@ type User struct {
 	TeamName string `json:"team_name,omitempty"`
 	IsActive bool   `json:"is_active"`
 }
-
-// dto
-type PullRequestShort struct {
-	PRID     string `json:"pull_request_id"`
-	PRName   string `json:"pull_request_name"`
-	AuthorID string `json:"author_id"`
-	Status   string `json:"status"`
-}

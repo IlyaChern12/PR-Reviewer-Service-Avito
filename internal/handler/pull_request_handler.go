@@ -16,6 +16,7 @@ var (
 	CodePRMerged    = "PR_MERGED"
 	CodeNotAssigned = "NOT_ASSIGNED"
 	CodeNoCandidate = "NO_CANDIDATE"
+	CodeBadRequest  = "BAD_REQUEST"
 )
 
 type PullRequestHandler struct {
@@ -106,7 +107,7 @@ func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 			{ "pr": PullRequest (MERGED) }
 		Errors:
 			404 NOT_FOUND - PR не найден
-			400 INVALID_INPUT - некорректное тело запроса
+			400 BAD_REQUEST - некорректное тело запроса
 */
 func (h *PullRequestHandler) MergePR(c *gin.Context) {
 	var req struct {
@@ -117,7 +118,7 @@ func (h *PullRequestHandler) MergePR(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": gin.H{
-				"code":    CodeInvalidInput,
+				"code":    CodeBadRequest,
 				"message": err.Error(),
 			},
 		})
@@ -132,8 +133,8 @@ func (h *PullRequestHandler) MergePR(c *gin.Context) {
 		if err == service.ErrPRNotFound {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
-					"code":    CodeNotFound,
-					"message": "PR not found",
+					"code":    "NOT_FOUND",
+					"message": "resource not found",
 				},
 			})
 			return

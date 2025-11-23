@@ -35,6 +35,18 @@ func (s *TeamService) CreateTeam(team *domain.Team, members []*domain.User) erro
 	return s.repo.CreateTeamWithUsers(team.TeamName, members)
 }
 
+// существование команды
+func (s *TeamService) TeamExists(teamName string) (bool, error) {
+    // читаем из репозитория
+    exists, err := s.repo.Exists(teamName)
+    if err != nil {
+        // логируем на уровне сервиса
+        s.logger.Errorf("failed to check if team exists %s: %v", teamName, err)
+        return false, err
+    }
+    return exists, nil
+}
+
 // получение команды
 func (s *TeamService) GetTeam(teamName string) (*domain.Team, error) {
 	members, err := s.repo.GetUsersByTeam(teamName)
