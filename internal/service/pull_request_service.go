@@ -19,12 +19,14 @@ var (
 	ErrNotAssigned    = errors.New("reviewer is not assigned to PR")
 )
 
+// PullRequestService сервис пулл реквестов
 type PullRequestService struct {
 	prRepo   interfaces.PullRequestRepo // репо PR
 	userRepo interfaces.UserReader      // для получения активных ревьюверов
 	logger   *zap.SugaredLogger
 }
 
+// NewPullRequestService cоздает сервис пулл реквестов
 func NewPullRequestService(prRepo interfaces.PullRequestRepo, userRepo interfaces.UserReader, logger *zap.SugaredLogger) *PullRequestService {
 	return &PullRequestService{
 		prRepo:   prRepo,
@@ -33,7 +35,7 @@ func NewPullRequestService(prRepo interfaces.PullRequestRepo, userRepo interface
 	}
 }
 
-// cоздание PR с назначением до 2 ревьюверов
+// CreatePR cоздание PR с назначением до 2 ревьюверов
 func (s *PullRequestService) CreatePR(pr *domain.PullRequest) error {
 	existing, err := s.prRepo.GetPRByID(pr.PRID)
 	if err != nil {
@@ -93,7 +95,7 @@ func (s *PullRequestService) CreatePR(pr *domain.PullRequest) error {
 	return nil
 }
 
-// cлияние
+// MergePR производит слияние пулл реквестов
 func (s *PullRequestService) MergePR(prID string) (*domain.PullRequest, error) {
 	pr, err := s.prRepo.GetPRByID(prID)
 	if err != nil {
@@ -114,7 +116,7 @@ func (s *PullRequestService) MergePR(prID string) (*domain.PullRequest, error) {
 	return pr, nil
 }
 
-// замена ревьювера на активного из его команды
+// ReassignReviewer заменяет ревьювера на активного из его команды
 func (s *PullRequestService) ReassignReviewer(prID, oldReviewerID string) (*domain.PullRequest, string, error) {
 	pr, err := s.prRepo.GetPRByID(prID)
 	if err != nil {
@@ -195,7 +197,7 @@ func (s *PullRequestService) ReassignReviewersForTeam(teamName string) error {
 	return nil
 }
 
-// сервисный метод для статистики
+// GetStats сервисный метод для получения статистики
 func (s *PullRequestService) GetStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})
 

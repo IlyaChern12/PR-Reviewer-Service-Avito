@@ -21,11 +21,11 @@ type TeamHandler struct {
 	logger      *zap.SugaredLogger
 }
 
-func NewTeamHandler(teamService *service.TeamService, prService   *service.PullRequestService, userService *service.UserService, logger *zap.SugaredLogger) *TeamHandler {
+func NewTeamHandler(teamService *service.TeamService, prService *service.PullRequestService, userService *service.UserService, logger *zap.SugaredLogger) *TeamHandler {
 	return &TeamHandler{
 		teamService: teamService,
 		userService: userService,
-		prService:	 prService,
+		prService:   prService,
 		logger:      logger,
 	}
 }

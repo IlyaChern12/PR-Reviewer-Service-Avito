@@ -9,7 +9,7 @@ import (
 
 // тестируем создание PR с разными сценариями
 func TestCreatePR(t *testing.T) {
-	ResetDB()  // чистим тестовую БД перед тестом
+	ResetDB() // чистим тестовую БД перед тестом
 
 	// создаём команду через API или напрямую через сервисы
 	teamPayload := map[string]interface{}{
@@ -20,7 +20,15 @@ func TestCreatePR(t *testing.T) {
 		},
 	}
 	body, _ := json.Marshal(teamPayload)
-	http.Post(baseURL+"/team/add", "application/json", bytes.NewBuffer(body))
+	resp, err := http.Post(baseURL+"/team/add", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("request error: %v", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close body: %v", err)
+		}
+	}()
 
 	// кейсы
 	cases := []struct {
@@ -40,7 +48,11 @@ func TestCreatePR(t *testing.T) {
 			if err != nil {
 				t.Fatalf("request error: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					t.Fatalf("failed to close body: %v", err)
+				}
+			}()
 
 			if resp.StatusCode != c.want {
 				t.Errorf("expected %d, got %d", c.want, resp.StatusCode)

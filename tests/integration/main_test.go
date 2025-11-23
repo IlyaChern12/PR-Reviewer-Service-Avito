@@ -5,7 +5,9 @@ import (
 	"os"
 	"testing"
 
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func TestMain(m *testing.M) {

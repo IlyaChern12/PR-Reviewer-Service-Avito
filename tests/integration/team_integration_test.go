@@ -10,7 +10,7 @@ import (
 // тестируем получение команды
 func TestGetTeam(t *testing.T) {
 	// создаём команду заранее, чтобы точно существовала
-	ResetDB() 
+	ResetDB()
 	teamPayload := map[string]interface{}{
 		"team_name": "test_team",
 		"members": []map[string]interface{}{
@@ -23,7 +23,11 @@ func TestGetTeam(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create team: %v", err)
 	}
-	resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close body: %v", err)
+		}
+	}()
 
 	cases := []struct {
 		name string
@@ -41,7 +45,11 @@ func TestGetTeam(t *testing.T) {
 			if err != nil {
 				t.Fatalf("request error: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					t.Fatalf("failed to close body: %v", err)
+				}
+			}()
 
 			if resp.StatusCode != c.want {
 				t.Errorf("expected %d, got %d", c.want, resp.StatusCode)
@@ -52,7 +60,7 @@ func TestGetTeam(t *testing.T) {
 
 // тестируем деактивацию команды
 func TestDeactivateTeam(t *testing.T) {
-	ResetDB() 
+	ResetDB()
 	// создаём команду заранее
 	teamPayload := map[string]interface{}{
 		"team_name": "deactivate_team",
@@ -66,7 +74,11 @@ func TestDeactivateTeam(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create team: %v", err)
 	}
-	resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("failed to close body: %v", err)
+		}
+	}()
 
 	cases := []struct {
 		name string
@@ -83,7 +95,11 @@ func TestDeactivateTeam(t *testing.T) {
 			if err != nil {
 				t.Fatalf("request error: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				if err := resp.Body.Close(); err != nil {
+					t.Fatalf("failed to close body: %v", err)
+				}
+			}()
 
 			if resp.StatusCode != c.want {
 				t.Errorf("expected %d, got %d", c.want, resp.StatusCode)
