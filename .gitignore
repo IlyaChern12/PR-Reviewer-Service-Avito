@@ -2,7 +2,8 @@
 .vscode/
 .DS_Store
 
-# артефакты сборк
+# артефакты сборки
+/tests/logs
 /bin/
 /*.exe
 /*.exe~
@@ -15,3 +16,4 @@ pgdata/
 # *.env
 
 # логи
+*.log

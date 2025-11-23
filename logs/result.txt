@@ -1,0 +1,149 @@
+//1. Создание команды
+{
+  "team": {
+    "team_name": "backend",
+    "members": [
+      {
+        "user_id": "u1",
+        "username": "Alice",
+        "team_name": "backend",
+        "is_active": true
+      },
+      {
+        "user_id": "u2",
+        "username": "Bob",
+        "team_name": "backend",
+        "is_active": true
+      },
+      {
+        "user_id": "u3",
+        "username": "Charlie",
+        "team_name": "backend",
+        "is_active": true
+      }
+    ]
+  }
+},
+// 1.1 Повторное создание той же команды (TEAM_EXISTS)
+{
+  "error": {
+    "code": "TEAM_EXISTS",
+    "message": "team_name already exists"
+  }
+}
+// 2. Получение команды
+{
+  "team_name": "backend",
+  "members": [
+    {
+      "user_id": "u1",
+      "username": "Alice",
+      "team_name": "backend",
+      "is_active": true
+    },
+    {
+      "user_id": "u2",
+      "username": "Bob",
+      "team_name": "backend",
+      "is_active": true
+    },
+    {
+      "user_id": "u3",
+      "username": "Charlie",
+      "team_name": "backend",
+      "is_active": true
+    }
+  ]
+}
+// 3. Деактивация пользователя u2
+{
+  "user": {
+    "user_id": "u2",
+    "username": "Bob",
+    "team_name": "backend",
+    "is_active": false
+  }
+}
+// 4. Создание PR pr-1001 автором u1
+{
+  "pr": {
+    "assigned_reviewers": [
+      "u3"
+    ],
+    "author_id": "u1",
+    "createdAt": "2025-11-23T19:20:35.667114927Z",
+    "mergedAt": null,
+    "pull_request_id": "pr-1001",
+    "pull_request_name": "Add search",
+    "status": "OPEN"
+  }
+}
+// 4.1 Повторное создание PR (PR_EXISTS)
+{
+  "error": {
+    "code": "PR_EXISTS",
+    "message": "PR already exists"
+  }
+}
+// 5. Переназначение ревьювера (old_user_id=u3)
+{
+  "pr": {
+    "assigned_reviewers": [
+      "u3"
+    ],
+    "author_id": "u1",
+    "createdAt": "2025-11-23T19:20:35.665423Z",
+    "mergedAt": null,
+    "pull_request_id": "pr-1001",
+    "pull_request_name": "Add search",
+    "status": "OPEN"
+  },
+  "replaced_by": "u1"
+}
+// 5.1 Переназначение несуществующего ревьювера (ожидаем NOT_ASSIGNED)
+{
+  "error": {
+    "code": "NOT_ASSIGNED",
+    "message": "reviewer is not assigned to this PR"
+  }
+}
+// 6. Получение PR'ов, где пользователь назначен ревьювером
+{
+  "pull_requests": [],
+  "user_id": "u3"
+}
+// 7. Merge PR pr-1001
+{
+  "pr": {
+    "assigned_reviewers": [
+      "u1"
+    ],
+    "author_id": "u1",
+    "createdAt": "2025-11-23T19:20:35.665423Z",
+    "mergedAt": "2025-11-23T19:20:35.727591635Z",
+    "pull_request_id": "pr-1001",
+    "pull_request_name": "Add search",
+    "status": "MERGED"
+  }
+}
+// 7.1 Повторный merge (идемпотентность)
+{
+  "pr": {
+    "assigned_reviewers": [
+      "u1"
+    ],
+    "author_id": "u1",
+    "createdAt": "2025-11-23T19:20:35.665423Z",
+    "mergedAt": "2025-11-23T19:20:35.727592Z",
+    "pull_request_id": "pr-1001",
+    "pull_request_name": "Add search",
+    "status": "MERGED"
+  }
+}
+// 8. Переназначение после MERGED (PR_MERGED)
+{
+  "error": {
+    "code": "PR_MERGED",
+    "message": "cannot reassign on merged PR"
+  }
+}
