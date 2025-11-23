@@ -65,7 +65,7 @@ func (h *UserHandler) SetIsActive(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"error": gin.H{
 				"code":    code,
-				"message": err.Error(),
+				"message": "resource not found",
 			},
 		})
 		return

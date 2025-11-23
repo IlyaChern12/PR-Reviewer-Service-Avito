@@ -13,51 +13,39 @@ import (
 )
 
 func main() {
-	// Подгружаем конфиг
+	// конфиг
 	cfg := config.LoadConfig()
 
-	// Логгер
+	// логгер
 	logger.Init()
-	defer func() {
-		if err := logger.Sugar.Sync(); err != nil {
-			logger.Sugar.Warnf("logger sync failed: %v", err)
-		}
-	}()
+	defer logger.Sugar.Sync()
 
-	logger.Sugar.Infof("Starting PR Reviewer Service on port %s", cfg.Port)
-
-	// Подключение к БД
+	// подключение к БД
 	dbConn, err := db.NewPostgresDB(cfg)
 	if err != nil {
 		logger.Sugar.Fatalf("failed to connect to DB: %v", err)
 	}
-	prRepo := repository.NewPullRequestRepo(dbConn)
+
+	// репо
 	userRepo := repository.NewUserRepo(dbConn, logger.Sugar)
 	teamRepo := repository.NewTeamRepo(dbConn, logger.Sugar)
+	prRepo := repository.NewPullRequestRepo(dbConn)
 
-	// Сервисы
+	// сервисы
 	userService := service.NewUserService(userRepo, logger.Sugar)
 	teamService := service.NewTeamService(teamRepo, dbConn, logger.Sugar)
 	prService := service.NewPullRequestService(prRepo, userService, logger.Sugar)
 
-	// Хэндлеры
+	// хэндлеры
 	userHandler := handler.NewUserHandler(userService, logger.Sugar)
-	prHandler := handler.NewPullRequestHandler(prService, logger.Sugar)
 	teamHandler := handler.NewTeamHandler(teamService, prService, userService, logger.Sugar)
+	prHandler := handler.NewPullRequestHandler(prService, logger.Sugar)
 	statsHandler := handler.NewStatsHandler(prService, userService, teamService, logger.Sugar)
 
-	// Gin роутер
-	router := gin.Default()
+	// роутер
+	router := NewRouter(userHandler, teamHandler, prHandler, statsHandler)
 
-	// Health-check
-	router.GET("/health", func(c *gin.Context) {
-		c.String(200, "ok")
-	})
-
-	// Роуты API
-	setupRoutes(router, userHandler, teamHandler, prHandler, statsHandler)
-
-	// Запуск сервера
+	// запуск сервера
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	logger.Sugar.Infof("server listening on %s", addr)
 	if err := router.Run(addr); err != nil {
@@ -65,7 +53,20 @@ func main() {
 	}
 }
 
-func setupRoutes(router *gin.Engine, userH *handler.UserHandler, teamH *handler.TeamHandler, prH *handler.PullRequestHandler, stats *handler.StatsHandler) {
+// NewRouter создаёт gin с роутами
+func NewRouter(
+	userH *handler.UserHandler,
+	teamH *handler.TeamHandler,
+	prH *handler.PullRequestHandler,
+	statsH *handler.StatsHandler,
+) *gin.Engine {
+	router := gin.Default()
+
+	// health-check
+	router.GET("/health", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
+
 	// пользователи
 	router.POST("/users/setIsActive", userH.SetIsActive)
 	router.GET("/users/getReview", userH.GetReviewPR)
@@ -73,7 +74,6 @@ func setupRoutes(router *gin.Engine, userH *handler.UserHandler, teamH *handler.
 	// команды
 	router.POST("/team/add", teamH.CreateTeam)
 	router.GET("/team/get", teamH.GetTeam)
-	// массовая деактивация
 	router.POST("/team/deactivate", teamH.DeactivateTeam)
 
 	// пулл реквесты
@@ -82,5 +82,7 @@ func setupRoutes(router *gin.Engine, userH *handler.UserHandler, teamH *handler.
 	router.POST("/pullRequest/reassign", prH.ReassignReviewer)
 
 	// статистика
-	router.GET("/stats", stats.GetStats)
+	router.GET("/stats", statsH.GetStats)
+
+	return router
 }
