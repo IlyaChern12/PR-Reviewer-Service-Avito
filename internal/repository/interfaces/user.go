@@ -24,4 +24,5 @@ type UserRepo interface {
 	UserReader
 	UserWriter
 	ListAllUsers() ([]*domain.User, error)
+    SetIsActiveByTeam(teamName string, isActive bool) error
 }

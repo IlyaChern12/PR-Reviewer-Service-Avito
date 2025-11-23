@@ -51,6 +51,11 @@ func (s *UserService) SetIsActive(userID string, isActive bool) (*domain.User, e
 	return user, nil
 }
 
+// DeactivateTeam массово деактивирует всех пользователей команды
+func (s *UserService) DeactivateTeam(teamName string) error {
+    return s.repo.SetIsActiveByTeam(teamName, false)
+}
+
 // ListByTeam возвращает всех пользователей команды
 func (s *UserService) ListByTeam(teamName string) ([]*domain.User, error) {
 	users, err := s.repo.ListByTeam(teamName)

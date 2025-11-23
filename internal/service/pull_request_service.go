@@ -155,11 +155,51 @@ func (s *PullRequestService) ReassignReviewer(prID, oldReviewerID string) (*doma
 	return pr, newReviewerID, nil
 }
 
+// ReassignReviewersForTeam безопасно переназначает ревьюверов для всех открытых PR команды
+func (s *PullRequestService) ReassignReviewersForTeam(teamName string) error {
+	prs, err := s.prRepo.ListOpenPRsByTeam(teamName)
+	if err != nil {
+		return err
+	}
+
+	activeUsers, err := s.userRepo.ListActiveByTeam(teamName)
+	if err != nil {
+		return err
+	}
+
+	activeMap := make(map[string]*domain.User)
+	for _, u := range activeUsers {
+		activeMap[u.UserID] = u
+	}
+
+	for _, pr := range prs {
+		for _, oldReviewer := range pr.AssignReviewers {
+			if !oldReviewer.IsActive {
+				var newUserID string
+				for _, u := range activeUsers {
+					if u.UserID != pr.AuthorID && u.UserID != oldReviewer.UserID {
+						newUserID = u.UserID
+						break
+					}
+				}
+
+				if newUserID != "" {
+					if err := s.prRepo.UpdateReviewer(pr.PRID, oldReviewer.UserID, newUserID); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // сервисный метод для статистики
 func (s *PullRequestService) GetStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})
 
-	// 1. Количество назначений на PR по пользователям
+	// количество назначений на PR по пользователям
 	assignments := make(map[string]int)
 	prs, err := s.prRepo.ListAllPRs()
 	if err != nil {
@@ -172,7 +212,7 @@ func (s *PullRequestService) GetStats() (map[string]interface{}, error) {
 	}
 	stats["assignments_per_user"] = assignments
 
-	// 2. Количество PR по статусу
+	// количество PR по статусу
 	statusCount := map[string]int{
 		"OPEN":   0,
 		"MERGED": 0,
