@@ -115,3 +115,12 @@ func (r *UserRepo) GetReviewPR(userID string) ([]*domain.PullRequestShort, error
     }
     return prs, nil
 }
+
+func (r *UserRepo) ListAllUsers() ([]*domain.User, error) {
+	rows, err := r.db.Query(`SELECT user_id, username, team_name, is_active FROM users`)
+	if err != nil {
+		r.logger.Errorf("failed to list all users: %v", err)
+		return nil, err
+	}
+	return r.scanUsers(rows)
+}

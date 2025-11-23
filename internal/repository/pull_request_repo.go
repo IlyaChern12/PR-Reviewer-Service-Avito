@@ -114,3 +114,26 @@ func (r *PullRequestRepo) UpdateReviewer(prID, oldUserID, newUserID string) erro
 	_, err := r.db.Exec(queries.UpdatePRReviewer, newUserID, prID, oldUserID)
 	return err
 }
+
+// вывод всех пулл реквестов
+func (r *PullRequestRepo) ListAllPRs() ([]*domain.PullRequest, error) {
+	rows, err := r.db.Query(queries.SelectAllRPs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var prs []*domain.PullRequest
+	for rows.Next() {
+		var prID string
+		if err := rows.Scan(&prID); err != nil {
+			return nil, err
+		}
+		pr, err := r.GetPRByID(prID)
+		if err != nil {
+			return nil, err
+		}
+		prs = append(prs, pr)
+	}
+	return prs, nil
+}

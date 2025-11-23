@@ -84,3 +84,23 @@ func (r *TeamRepo) GetUsersByTeam(teamName string) ([]*domain.User, error) {
 
 	return users, nil
 }
+
+func (r *TeamRepo) ListAllTeams() ([]*domain.Team, error) {
+	rows, err := r.db.Query(`SELECT team_name FROM teams`)
+	if err != nil {
+		r.logger.Errorf("failed to list all teams: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var teams []*domain.Team
+	for rows.Next() {
+		var t domain.Team
+		if err := rows.Scan(&t.TeamName); err != nil {
+			r.logger.Errorf("failed to scan team row: %v", err)
+			return nil, err
+		}
+		teams = append(teams, &t)
+	}
+	return teams, nil
+}

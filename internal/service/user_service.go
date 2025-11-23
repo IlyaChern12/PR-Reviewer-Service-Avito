@@ -90,3 +90,29 @@ func (s *UserService) ListReviewPR(userID string) ([]*domain.PullRequestShort, e
 func (s *UserService) GetReviewPR(userID string) ([]*domain.PullRequestShort, error) {
 	return s.ListReviewPR(userID)
 }
+
+func (s *UserService) GetStats() (map[string]interface{}, error) {
+	stats := make(map[string]interface{})
+
+	users, err := s.repo.ListAllUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	total := len(users)
+	activeCount := 0
+	inactiveCount := 0
+	for _, u := range users {
+		if u.IsActive {
+			activeCount++
+		} else {
+			inactiveCount++
+		}
+	}
+
+	stats["total_users"] = total
+	stats["active_users"] = activeCount
+	stats["inactive_users"] = inactiveCount
+
+	return stats, nil
+}
