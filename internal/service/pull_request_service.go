@@ -155,3 +155,36 @@ func (s *PullRequestService) ReassignReviewer(prID, oldReviewerID string) (*doma
 
 	return pr, newReviewerID, nil
 }
+
+
+// сервисный метод для статистики
+func (s *PullRequestService) GetStats() (map[string]interface{}, error) {
+	stats := make(map[string]interface{})
+
+	// 1. Количество назначений на PR по пользователям
+	assignments := make(map[string]int)
+	prs, err := s.prRepo.ListAllPRs()
+	if err != nil {
+		return nil, err
+	}
+	for _, pr := range prs {
+		for _, u := range pr.AssignReviewers {
+			assignments[u.UserID]++
+		}
+	}
+	stats["assignments_per_user"] = assignments
+
+	// 2. Количество PR по статусу
+	statusCount := map[string]int{
+		"OPEN":   0,
+		"MERGED": 0,
+	}
+	for _, pr := range prs {
+		statusCount[pr.Status]++
+	}
+	stats["prs_per_status"] = statusCount
+
+	stats["total_pull_requests"] = len(prs)
+
+	return stats, nil
+}

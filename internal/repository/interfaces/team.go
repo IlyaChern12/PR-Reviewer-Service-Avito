@@ -19,4 +19,5 @@ type TeamReader interface {
 type TeamRepo interface {
     TeamReader
     TeamWriter
+    ListAllTeams() ([]*domain.Team, error)
 }

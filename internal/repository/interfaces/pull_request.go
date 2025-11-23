@@ -20,4 +20,5 @@ type PullRequestWriter interface {
 type PullRequestRepo interface {
     PullRequestReader
     PullRequestWriter
+    ListAllPRs() ([]*domain.PullRequest, error)
 }

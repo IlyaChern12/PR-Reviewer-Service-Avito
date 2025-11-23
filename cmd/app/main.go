@@ -40,6 +40,7 @@ func main() {
 	userHandler := handler.NewUserHandler(userService, logger.Sugar)
 	teamHandler := handler.NewTeamHandler(teamService, logger.Sugar)
 	prHandler := handler.NewPullRequestHandler(prService, logger.Sugar)
+	statsHandler := handler.NewStatsHandler(prService, userService, teamService, logger.Sugar)
 
 	// Gin роутер
 	router := gin.Default()
@@ -50,7 +51,7 @@ func main() {
 	})
 
 	// Роуты API
-	setupRoutes(router, userHandler, teamHandler, prHandler)
+	setupRoutes(router, userHandler, teamHandler, prHandler, statsHandler)
 
 	// Запуск сервера
 	addr := fmt.Sprintf(":%s", cfg.Port)
@@ -60,17 +61,20 @@ func main() {
 	}
 }
 
-func setupRoutes(router *gin.Engine, userH *handler.UserHandler, teamH *handler.TeamHandler, prH *handler.PullRequestHandler) {
-	// Users
+func setupRoutes(router *gin.Engine, userH *handler.UserHandler, teamH *handler.TeamHandler, prH *handler.PullRequestHandler, stats *handler.StatsHandler) {
+	// пользователи
 	router.POST("/users/setIsActive", userH.SetIsActive)
 	router.GET("/users/getReview", userH.GetReviewPR)
 
-	// Teams
+	// команды
 	router.POST("/team/add", teamH.CreateTeam)
 	router.GET("/team/get", teamH.GetTeam)
 
-	// Pull Requests
+	// пулл реквесты
 	router.POST("/pullRequest/create", prH.CreatePR)
 	router.POST("/pullRequest/merge", prH.MergePR)
 	router.POST("/pullRequest/reassign", prH.ReassignReviewer)
+
+	// статистика
+	router.GET("/stats", stats.GetStats)
 }

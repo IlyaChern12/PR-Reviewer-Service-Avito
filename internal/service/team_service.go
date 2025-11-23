@@ -50,3 +50,28 @@ func (s *TeamService) GetTeam(teamName string) (*domain.Team, error) {
 		Members:  members,
 	}, nil
 }
+
+
+func (s *TeamService) GetStats() (map[string]interface{}, error) {
+	stats := make(map[string]interface{})
+
+	teams, err := s.repo.ListAllTeams()
+	if err != nil {
+		return nil, err
+	}
+
+	total := len(teams)
+	usersPerTeam := make(map[string]int)
+	for _, t := range teams {
+		users, err := s.repo.GetUsersByTeam(t.TeamName)
+		if err != nil {
+			return nil, err
+		}
+		usersPerTeam[t.TeamName] = len(users)
+	}
+
+	stats["total_teams"] = total
+	stats["users_per_team"] = usersPerTeam
+
+	return stats, nil
+}

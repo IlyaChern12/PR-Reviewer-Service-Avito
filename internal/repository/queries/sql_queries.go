@@ -49,6 +49,9 @@ const (
 
 // PullRequestRepo
 const (
+	SelectAllRPs = `
+		SELECT pull_request_id FROM pull_requests`
+
 	SelectPRExist           = `
 		SELECT EXISTS(SELECT 1 FROM pull_requests
 		WHERE pull_request_id=$1)`

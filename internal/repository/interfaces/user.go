@@ -23,4 +23,5 @@ type UserWriter interface {
 type UserRepo interface {
     UserReader
     UserWriter
+    ListAllUsers() ([]*domain.User, error)
 }
