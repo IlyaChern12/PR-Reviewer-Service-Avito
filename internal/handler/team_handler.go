@@ -61,7 +61,7 @@ func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": gin.H{
 					"code": CodeTeamExists,
-					"message": "team already exists",
+					"message": "team_name already exists",
 				},
 			})
 			return
@@ -78,10 +78,22 @@ func (h *TeamHandler) CreateTeam(ctx *gin.Context) {
 		return
 	}
 
+	team, err := h.teamService.GetTeam(req.TeamName)
+	if err != nil {
+		h.logger.Warnf("failed to fetch created team %s: %v", req.TeamName, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": gin.H{
+				"code":    CodeUnknownError,
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
 	// 201 успех
 	h.logger.Infof("team %s created", req.TeamName)
 	ctx.JSON(http.StatusCreated, gin.H{
-		"team": req,
+		"team": team,
 	})
 }
 

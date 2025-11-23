@@ -53,6 +53,8 @@ func (r *TeamRepo) CreateTeamWithUsers(teamName string, members []*domain.User) 
 
 	// вставка/обновление пользователей
 	for _, u := range members {
+		u.TeamName = teamName
+		r.logger.Infof("Inserting user: %s, %s, %s, %v", u.UserID, u.Username, u.TeamName, u.IsActive)
 		if _, err := tx.Exec(queries.InsertOrUpdateUser, u.UserID, u.Username, u.TeamName, u.IsActive); err != nil {
 			return err
 		}
@@ -72,11 +74,13 @@ func (r *TeamRepo) GetUsersByTeam(teamName string) ([]*domain.User, error) {
 
 	var users []*domain.User
 	for rows.Next() {
-		u := &domain.User{TeamName: teamName}
-		if err := rows.Scan(&u.UserID, &u.Username, &u.IsActive); err != nil {
+		u := &domain.User{}
+		if err := rows.Scan(&u.UserID, &u.Username, &u.TeamName, &u.IsActive); err != nil {
+			r.logger.Errorf("SQL error: failed to scan user row: %v", err)
 			return nil, err
 		}
 		users = append(users, u)
 	}
+
 	return users, nil
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/domain"
@@ -34,7 +35,11 @@ func (r *UserRepo) Create(exec db.Executor, user *domain.User) error {
 // получение юзера по id
 func (r *UserRepo) GetByID(userID string) (*domain.User, error) {
 	var u domain.User
-	if err := r.db.QueryRow(queries.SelectUserByID, userID).Scan(&u.UserID, &u.Username, &u.TeamName, &u.IsActive); err != nil {
+	err := r.db.QueryRow(queries.SelectUserByID, userID).Scan(&u.UserID, &u.Username, &u.TeamName, &u.IsActive)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("user not found")
+		}
 		r.logger.Errorf("SQL error: failed to get user %s: %v", userID, err)
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/domain"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -97,6 +98,10 @@ func (h *UserHandler) GetReviewPR(ctx *gin.Context) {
 			},
 		})
 		return
+	}
+
+	if prs == nil {
+		prs = []*domain.PullRequestShort{}
 	}
 
 	// успешный ответ

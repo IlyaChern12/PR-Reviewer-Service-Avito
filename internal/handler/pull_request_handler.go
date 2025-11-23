@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/domain"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/service"
@@ -64,6 +65,7 @@ func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 		PRID:   req.ID,
 		PRName: req.Name,
 		AuthorID: req.AuthorID,
+		Status:   "OPEN",
 	}
 
 	err := h.prService.CreatePR(pr)
@@ -91,7 +93,8 @@ func (h *PullRequestHandler) CreatePR(c *gin.Context) {
 	}
 
 	// успешное создание
-	c.JSON(http.StatusCreated, gin.H{"pr": pr})
+	pr.CreatedAt = time.Now()
+	c.JSON(http.StatusCreated, gin.H{"pr": serializePR(pr)})
 }
 
 
@@ -148,7 +151,7 @@ func (h *PullRequestHandler) MergePR(c *gin.Context) {
 	}
 
 	// успех
-	c.JSON(http.StatusOK, gin.H{"pr": pr})
+	c.JSON(http.StatusOK, gin.H{"pr": serializePR(pr)})
 }
 
 
@@ -187,8 +190,11 @@ func (h *PullRequestHandler) ReassignReviewer(c *gin.Context) {
 		case service.ErrPRMerged:
 			c.JSON(http.StatusConflict, gin.H{"error": gin.H{"code": CodePRMerged, "message": "cannot reassign on merged PR"}})
 			return
+		case service.ErrNotAssigned:
+			c.JSON(http.StatusConflict, gin.H{"error": gin.H{"code": CodeNotAssigned, "message": "reviewer is not assigned to this PR"}})
+			return
 		case service.ErrNoCandidate:
-			c.JSON(http.StatusConflict, gin.H{"error": gin.H{"code": CodeNoCandidate, "message": "no active replacement candidate"}})
+			c.JSON(http.StatusConflict, gin.H{"error": gin.H{"code": CodeNoCandidate, "message": "no active replacement candidate in team"}})
 			return
 		case service.ErrPRNotFound:
 			c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"code": CodeNotFound, "message": "PR not found"}})
@@ -201,7 +207,23 @@ func (h *PullRequestHandler) ReassignReviewer(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"pr": pr,
+		"pr": serializePR(pr),
 		"replaced_by": newReviewerID,
 	})
+}
+
+func serializePR(pr *domain.PullRequest) map[string]any {
+    assigned := make([]string, len(pr.AssignReviewers))
+    for i, r := range pr.AssignReviewers {
+        assigned[i] = r.UserID
+    }
+    return map[string]any{
+        "pull_request_id":   pr.PRID,
+        "pull_request_name": pr.PRName,
+        "author_id":         pr.AuthorID,
+        "status":            pr.Status,
+        "assigned_reviewers": assigned,
+        "createdAt":         pr.CreatedAt,
+        "mergedAt":          pr.MergedAt,
+    }
 }

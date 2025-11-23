@@ -86,3 +86,7 @@ func (s *UserService) ListReviewPR(userID string) ([]*domain.PullRequestShort, e
 
     return prs, nil
 }
+
+func (s *UserService) GetReviewPR(userID string) ([]*domain.PullRequestShort, error) {
+	return s.ListReviewPR(userID)
+}

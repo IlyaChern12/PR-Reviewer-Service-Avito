@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS pull_request_reviewers (
-    pr_id TEXT REFERENCES pull_requests(pr_id),
+    pull_request_id TEXT REFERENCES pull_requests(pull_request_id),
     user_id TEXT REFERENCES users(user_id),
-    PRIMARY KEY (pr_id, user_id)
+    PRIMARY KEY (pull_request_id, user_id)
 );

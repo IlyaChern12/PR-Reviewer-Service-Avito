@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	ErrPRNotFound = errors.New("NOT_FOUND")
+	ErrPRExists = errors.New("PR_EXISTS")
+	ErrPRNotFound = errors.New("PR_NOT_FOUND")
 )
 
 type PullRequestRepo struct {
@@ -23,7 +24,30 @@ func NewPullRequestRepo(db *sql.DB) *PullRequestRepo {
 
 // создает запись PR в базе
 func (r *PullRequestRepo) CreatePR(pr *domain.PullRequest) error {
+	assignedIDs := []string{}
+	for _, u := range pr.AssignReviewers {
+		assignedIDs = append(assignedIDs, u.UserID)
+	}
+
+	var exists bool
+	if err := r.db.QueryRow(queries.SelectPRExist, pr.PRID).Scan(&exists); err != nil {
+		return err
+	}
+	if exists {
+		return ErrPRExists
+	}
+
 	_, err := r.db.Exec(queries.InsertPR, pr.PRID, pr.PRName, pr.AuthorID)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range assignedIDs {
+		if _, err := r.db.Exec(queries.InsertPRReviewer, pr.PRID, id); err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 
@@ -51,15 +75,38 @@ func (r *PullRequestRepo) MergePR(prID string, mergedAt time.Time) error {
 
 // возвращает PR по ID
 func (r *PullRequestRepo) GetPRByID(prID string) (*domain.PullRequest, error) {
-	var pr domain.PullRequest
-	err := r.db.QueryRow(queries.SelectPRByID, prID).Scan(&pr.PRID, &pr.PRName, &pr.AuthorID, &pr.Status)
+	pr := &domain.PullRequest{}
+	var mergedAt sql.NullTime
+
+	err := r.db.QueryRow(queries.SelectPRByID, prID).
+		Scan(&pr.PRID, &pr.PRName, &pr.AuthorID, &pr.Status, &pr.CreatedAt, &mergedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrPRNotFound
 		}
 		return nil, err
 	}
-	return &pr, nil
+
+	if mergedAt.Valid {
+		pr.MergedAt = &mergedAt.Time
+	}
+
+	// выбираем назначенных ревьюверов
+	rows, err := r.db.Query(queries.SelectPRReviewersFull, prID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		u := &domain.User{}
+		if err := rows.Scan(&u.UserID, &u.Username, &u.TeamName, &u.IsActive); err != nil {
+			return nil, err
+		}
+		pr.AssignReviewers = append(pr.AssignReviewers, u)
+	}
+
+	return pr, nil
 }
 
 // заменяет одного ревьювера на другого

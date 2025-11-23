@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/domain"
+	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/repository"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/repository/interfaces"
 	"go.uber.org/zap"
 )
@@ -15,6 +16,7 @@ var (
 	ErrPRExists        = errors.New("PR_EXISTS")
 	ErrPRMerged        = errors.New("PR_MERGED")
 	ErrNoCandidate     = errors.New("NO_CANDIDATE")
+	ErrNotAssigned = errors.New("reviewer is not assigned to PR")
 )
 
 type PullRequestService struct {
@@ -33,30 +35,60 @@ func NewPullRequestService(prRepo interfaces.PullRequestRepo, userRepo interface
 
 // cоздание PR с назначением до 2 ревьюверов
 func (s *PullRequestService) CreatePR(pr *domain.PullRequest) error {
-	// получаем активных участников
-	users, err := s.userRepo.ListActiveByTeam(pr.AuthorID)
+	existing, err := s.prRepo.GetPRByID(pr.PRID)
 	if err != nil {
-		return err
+		if errors.Is(err, repository.ErrPRNotFound) {
+		} else {
+			return err
+		}
+	} else if existing != nil {
+		return ErrPRExists
 	}
+
+	author, err := s.userRepo.GetByID(pr.AuthorID)
+    if err != nil {
+        return ErrAuthorNotFound
+    }
+
+	// получаем активных участников
+	users, err := s.userRepo.ListActiveByTeam(author.TeamName)
+    if err != nil {
+        return err
+    }
 
 	// исключаем автора
 	var reviewers []string
-	for _, u := range users {
-		if u.UserID != pr.AuthorID && len(reviewers) < 2 {
-			reviewers = append(reviewers, u.UserID)
-		}
-	}
+    for _, u := range users {
+        if u.UserID != pr.AuthorID && len(reviewers) < 2 {
+            reviewers = append(reviewers, u.UserID)
+        }
+    }
 
 	// создаем PR
-	if err := s.prRepo.CreatePR(pr); err != nil {
-		return err
-	}
+	pr.Status = "OPEN"
+    if err := s.prRepo.CreatePR(pr); err != nil {
+        return err
+    }
+
 
 	// назначаем ревьюверов
 	if len(reviewers) > 0 {
 		if err := s.prRepo.AssignReviewers(pr.PRID, reviewers); err != nil {
 			return err
 		}
+
+		// заполняем поле AssignReviewers для ответа
+		pr.AssignReviewers = []*domain.User{}
+		for _, u := range users {
+			for _, id := range reviewers {
+				if u.UserID == id {
+					pr.AssignReviewers = append(pr.AssignReviewers, u)
+					break
+				}
+			}
+		}
+	} else {
+		pr.AssignReviewers = []*domain.User{}
 	}
 
 	return nil
@@ -91,11 +123,16 @@ func (s *PullRequestService) ReassignReviewer(prID, oldReviewerID string) (*doma
 	}
 
 	if pr.Status == "MERGED" {
-		return nil, "", errors.New("PR_MERGED")
+    	return nil, "", ErrPRMerged
 	}
 
 	// получаем активных участников
-	users, err := s.userRepo.ListActiveByTeam(oldReviewerID)
+	oldUser, err := s.userRepo.GetByID(oldReviewerID)
+	if err != nil {
+		return nil, "", ErrNotAssigned
+	}
+
+	users, err := s.userRepo.ListActiveByTeam(oldUser.TeamName)
 	if err != nil {
 		return nil, "", err
 	}
