@@ -22,18 +22,25 @@ FROM alpine:3.18
 
 WORKDIR /app
 
+RUN apk add --no-cache postgresql-client bash curl
+RUN apk add --no-cache curl bash && \
+    ARCH=$(uname -m) && \
+    case $ARCH in \
+        x86_64) MIGRATE_ARCH="linux-amd64";; \
+        aarch64) MIGRATE_ARCH="linux-arm64";; \
+        *) echo "unsupported architecture: $ARCH" && exit 1;; \
+    esac && \
+    curl -L "https://github.com/golang-migrate/migrate/releases/download/v4.16.0/migrate.$MIGRATE_ARCH.tar.gz" \
+    -o migrate.tar.gz && \
+    tar -xzf migrate.tar.gz -C /tmp && \
+    mv /tmp/migrate /usr/local/bin/migrate && \
+    rm migrate.tar.gz
+
 # копируем бинарник с прошлого этапа
 COPY --from=builder /app/pr-reviewer .
 
 # миграции
 COPY migrations ./migrations
-
-# окружение по умолчанию
-ENV PORT=8080
-ENV DB_HOST=db
-ENV DB_USER=db_pr_user
-ENV DB_PASSWORD=pr_secret
-ENV DB_NAME=db_pr_name
 
 # порт
 EXPOSE 8080
