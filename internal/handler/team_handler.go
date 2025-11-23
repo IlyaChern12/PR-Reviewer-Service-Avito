@@ -161,41 +161,65 @@ func (h *TeamHandler) GetTeam(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, team)
 }
 
-// деактивация команды
+/*
+	 деактивация команды и переназначение ревьюверов
+		POST /team/deactivate
+		Body:
+			{
+				"team_name": "team1"
+			}
+		Response:
+			200 OK:
+				{ "message": "team deactivated and PR reviewers reassigned" }
+			400 BAD_REQUEST:
+				{ "error": "team_name is empty" } запроса пустое или некорректное
+			404 NOT_FOUND:
+				{ "error": "team not found" } указанной команды не существует
+			500 INTERNAL_SERVER_ERROR:
+				{ "error": err.Error() } внутренняя ошибка сервиса
+*/
 func (h *TeamHandler) DeactivateTeam(c *gin.Context) {
-	teamName := c.Query("team_name")
-	if teamName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "team_name is empty"})
-		return
-	}
+    // структура для чтения JSON body запроса
+    var req struct {
+        TeamName string `json:"team_name"` // имя команды, которую нужно деактивировать
+    }
 
-	// проверяем существование команды
-	exists, err := h.teamService.TeamExists(teamName)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": gin.H{
-				"code":    CodeTeamNotFound,
-				"message": "team not found",
-			},
-		})
-		return
-	}
+    // парсим JSON тело запроса и проверяем, что team_name не пустой
+    if err := c.ShouldBindJSON(&req); err != nil || req.TeamName == "" {
+        // если JSON некорректный или поле пустое — возвращаем 400
+        c.JSON(http.StatusBadRequest, gin.H{"error": "team_name is empty"})
+        return
+    }
 
-	// деактивируем всех пользователей
-	if err := h.userService.DeactivateTeam(teamName); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    teamName := req.TeamName // сохраняем для удобства
 
-	// переназначаем ревьюверов
-	if err := h.prService.ReassignReviewersForTeam(teamName); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    // проверяем, существует ли команда
+    exists, err := h.teamService.TeamExists(teamName)
+    if err != nil {
+        // если произошла ошибка при проверке — возвращаем 500
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    if !exists {
+        // если команды нет — возвращаем 404
+        c.JSON(http.StatusNotFound, gin.H{"error": "team not found"})
+        return
+    }
 
-	c.JSON(http.StatusOK, gin.H{"message": "team deactivated and PR reviewers reassigned"})
+    // массовая деактивация всех пользователей команды
+    if err := h.userService.DeactivateTeam(teamName); err != nil {
+        // если произошла ошибка при деактивации — возвращаем 500
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    // безопасное переназначение ревьюверов для всех открытых PR команды
+    if err := h.prService.ReassignReviewersForTeam(teamName); err != nil {
+        // если ошибка при переназначении — возвращаем 500
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    // успешный ответ: команда деактивирована и ревьюверы переназначены
+    c.JSON(http.StatusOK, gin.H{"message": "team deactivated and PR reviewers reassigned"})
 }
