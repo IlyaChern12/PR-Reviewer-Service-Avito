@@ -8,8 +8,8 @@ import (
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/logger"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/repository"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/repository/db"
+	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/router"
 	"github.com/IlyaChern12/PR-Reviewer-Service-Avito/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -47,7 +47,7 @@ func main() {
 	statsHandler := handler.NewStatsHandler(prService, userService, teamService, logger.Sugar)
 
 	// роутер
-	router := NewRouter(userHandler, teamHandler, prHandler, statsHandler)
+	router := router.NewRouter(userHandler, teamHandler, prHandler, statsHandler)
 
 	// запуск сервера
 	addr := fmt.Sprintf(":%s", cfg.Port)
@@ -55,38 +55,4 @@ func main() {
 	if err := router.Run(addr); err != nil {
 		logger.Sugar.Fatalf("failed to start server: %v", err)
 	}
-}
-
-// NewRouter создаёт gin с роутами
-func NewRouter(
-	userH *handler.UserHandler,
-	teamH *handler.TeamHandler,
-	prH *handler.PullRequestHandler,
-	statsH *handler.StatsHandler,
-) *gin.Engine {
-	router := gin.Default()
-
-	// health-check
-	router.GET("/health", func(c *gin.Context) {
-		c.String(200, "ok")
-	})
-
-	// пользователи
-	router.POST("/users/setIsActive", userH.SetIsActive)
-	router.GET("/users/getReview", userH.GetReviewPR)
-
-	// команды
-	router.POST("/team/add", teamH.CreateTeam)
-	router.GET("/team/get", teamH.GetTeam)
-	router.POST("/team/deactivate", teamH.DeactivateTeam)
-
-	// пулл реквесты
-	router.POST("/pullRequest/create", prH.CreatePR)
-	router.POST("/pullRequest/merge", prH.MergePR)
-	router.POST("/pullRequest/reassign", prH.ReassignReviewer)
-
-	// статистика
-	router.GET("/stats", statsH.GetStats)
-
-	return router
 }

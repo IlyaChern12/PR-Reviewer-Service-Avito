@@ -9,39 +9,43 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 )
 
+// тестовая бд
 var testDB *sql.DB
 
 // InitTestDB подключает базу для тестов и применение миграций
-func InitTestDB() {
+func InitTestDB() *sql.DB {
+	// получаем cтроку подключения
 	dbURL := os.Getenv("TEST_DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("TEST_DATABASE_URL not set")
 	}
 
+	// открываем базу
 	var err error
 	testDB, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("failed to connect to test DB: %v", err)
 	}
 
-	if err := applyMigrations(dbURL); err != nil {
+	// поднимаем миграции
+	if err := applyMigrations(); err != nil {
 		log.Fatalf("failed to apply migrations: %v", err)
 	}
+
+	return testDB
 }
 
-// применяем все миграции
-func applyMigrations(dbURL string) error {
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		return err
-	}
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+// applyMigrations применяет все миграции
+func applyMigrations() error {
+	// создаем адаптер
+	driver, err := postgres.WithInstance(testDB, &postgres.Config{})
 	if err != nil {
 		return err
 	}
 
+	// объект миграций
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://../../migrations", // путь к миграциям
+		"file://../../migrations",
 		"postgres",
 		driver,
 	)
@@ -49,6 +53,7 @@ func applyMigrations(dbURL string) error {
 		return err
 	}
 
+	// поднимаем миграции
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
@@ -57,15 +62,17 @@ func applyMigrations(dbURL string) error {
 
 // ResetDB очищает все таблицы перед каждым тестом
 func ResetDB() {
+	// проверка подлкючения
 	if testDB == nil {
 		log.Fatal("testDB not initialized")
 	}
 
+	// исполняем запросы на очистку
 	_, err := testDB.Exec(`
         TRUNCATE TABLE pull_requests RESTART IDENTITY CASCADE;
         TRUNCATE TABLE users RESTART IDENTITY CASCADE;
         TRUNCATE TABLE teams RESTART IDENTITY CASCADE;
-		TRUNCATE TABLE pull_request_reviewers RESTART IDENTITY CASCADE; 
+		TRUNCATE TABLE pull_request_reviewers RESTART IDENTITY CASCADE;
     `)
 	if err != nil {
 		log.Fatalf("failed to truncate tables: %v", err)

@@ -38,5 +38,6 @@ lint:
 	golangci-lint run ./...
 
 # интеграционные тесты
-test:
+test: up
 	@export $(shell grep TEST_DATABASE_URL .env) && go test -v ./tests/integration
+	@$(MAKE) down
